@@ -38,6 +38,16 @@ dependencies:
   # For state management
   provider: ^6.1.1
 
+  # For charts
+  fl_chart: ^0.68.0
+
+  # For PDF generation
+  pdf: ^3.10.8
+  printing: ^5.12.1
+
+  # For barcode scanning (web/desktop compatible)
+  qr_code_scanner: ^1.0.1
+
   # For local database
   sqflite: ^2.3.0
   sqflite_common_ffi: ^2.3.0+3

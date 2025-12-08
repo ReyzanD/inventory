@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../models/inventory_item.dart';
 import '../models/product.dart';
+import '../models/inventory_notification.dart';
+import '../models/inventory_transaction.dart';
 import '../services/inventory_service.dart';
+import '../services/notification_service.dart';
 
 class InventoryProvider extends ChangeNotifier {
   final InventoryService _inventoryService = InventoryService();
@@ -10,17 +13,67 @@ class InventoryProvider extends ChangeNotifier {
 
   List<InventoryItem> get inventoryItems => _inventoryItems;
   List<Product> get products => _products;
+  List<InventoryNotification> _notifications = [];
+  List<InventoryNotification> get notifications => _notifications;
 
   // Initialize data
   Future<void> init() async {
     await _inventoryService.init();
     await loadInventoryItems();
     await loadProducts();
+    await checkNotifications();
+  }
+
+  // Check for notifications (low stock, expiry, etc.)
+  Future<void> checkNotifications() async {
+    // Check for low stock items
+    final lowStockNotifications = _checkLowStockItems();
+
+    // Combine all notifications
+    _notifications = lowStockNotifications;
+    notifyListeners();
+  }
+
+  // Check for low stock items
+  List<InventoryNotification> _checkLowStockItems() {
+    List<InventoryNotification> notifications = [];
+
+    // For now, we'll use a default low stock threshold of 5
+    // In a real app, this could be configurable per item
+    for (final item in _inventoryItems) {
+      if (item.quantity <= 5) { // Threshold could be configurable
+        final notification = InventoryNotification.lowStock(
+          id: 'low_stock_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+          itemName: item.name,
+          currentQuantity: item.quantity,
+          unit: item.unit,
+        );
+        notifications.add(notification);
+      }
+    }
+
+    return notifications;
+  }
+
+  // Track an inventory transaction
+  void addTransaction({
+    required String inventoryItemId,
+    required String itemName,
+    required TransactionType type,
+    required double quantity,
+    required String unit,
+    String? reason,
+    String? userId,
+  }) {
+    // For now, just print the transaction
+    // In a real app, this would be stored in a database
+    print('Transaction: $type $quantity $unit of $itemName (ID: $inventoryItemId)');
   }
 
   // Inventory Items
   Future<void> loadInventoryItems() async {
     _inventoryItems = await _inventoryService.getAllInventoryItems();
+    await checkNotifications(); // Check notifications after loading inventory
     notifyListeners();
   }
 

@@ -312,7 +312,7 @@ Proyek ini menggunakan license yang ditentukan oleh pemilik repository.
 
 ## 👥 Authors
 
-- Development Team
+- ReyN
 
 ## 🙏 Acknowledgments
 

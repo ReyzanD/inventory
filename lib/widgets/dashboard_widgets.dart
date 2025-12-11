@@ -8,12 +8,15 @@ class DashboardStatCard extends StatelessWidget {
   final dynamic value;
   final IconData icon;
   final Color color;
+  final bool isCurrency;
 
   const DashboardStatCard({
+    super.key,
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    this.isCurrency = false,
   });
 
   @override
@@ -39,10 +42,21 @@ class DashboardStatCard extends StatelessWidget {
             ),
             SizedBox(height: 8),
             if (value is double || value is int)
-              RupiahText(
-                amount: value.toDouble(),
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              )
+              isCurrency
+                  ? RupiahText(
+                      amount: value.toDouble(),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : Text(
+                      value.toString(),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
             else
               Text(
                 value.toString(),
@@ -62,6 +76,7 @@ class DashboardStatsRow extends StatelessWidget {
   final int lowStockItems;
 
   const DashboardStatsRow({
+    super.key,
     required this.inventoryItems,
     required this.products,
     required this.totalValue,
@@ -70,43 +85,56 @@ class DashboardStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNarrow = MediaQuery.of(context).size.width < 720;
+
+    final cards = [
+      DashboardStatCard(
+        title: 'Inventory Items',
+        value: inventoryItems,
+        icon: Icons.inventory,
+        color: Colors.blue,
+      ),
+      DashboardStatCard(
+        title: 'Products',
+        value: products,
+        icon: Icons.production_quantity_limits,
+        color: Colors.green,
+      ),
+      DashboardStatCard(
+        title: 'Total Value',
+        value: totalValue,
+        icon: Icons.attach_money,
+        color: Colors.purple,
+        isCurrency: true,
+      ),
+      DashboardStatCard(
+        title: 'Low Stock',
+        value: lowStockItems,
+        icon: Icons.warning,
+        color: Colors.orange,
+      ),
+    ];
+
+    if (isNarrow) {
+      return Column(
+        children: [
+          ...cards.map(
+            (c) =>
+                Padding(padding: const EdgeInsets.only(bottom: 12), child: c),
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Expanded(
-          child: DashboardStatCard(
-            title: 'Inventory Items',
-            value: inventoryItems,
-            icon: Icons.inventory,
-            color: Colors.blue,
-          ),
-        ),
+        Expanded(child: cards[0]),
         SizedBox(width: 12),
-        Expanded(
-          child: DashboardStatCard(
-            title: 'Products',
-            value: products,
-            icon: Icons.production_quantity_limits,
-            color: Colors.green,
-          ),
-        ),
+        Expanded(child: cards[1]),
         SizedBox(width: 12),
-        Expanded(
-          child: DashboardStatCard(
-            title: 'Total Value',
-            value: totalValue,
-            icon: Icons.attach_money,
-            color: Colors.purple,
-          ),
-        ),
+        Expanded(child: cards[2]),
         SizedBox(width: 12),
-        Expanded(
-          child: DashboardStatCard(
-            title: 'Low Stock',
-            value: lowStockItems,
-            icon: Icons.warning,
-            color: Colors.orange,
-          ),
-        ),
+        Expanded(child: cards[3]),
       ],
     );
   }
@@ -116,7 +144,7 @@ class DashboardCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const DashboardCard({required this.title, required this.child});
+  const DashboardCard({super.key, required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +174,7 @@ class DashboardInventoryStatusItem extends StatelessWidget {
   final Color color;
 
   const DashboardInventoryStatusItem({
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
@@ -196,6 +225,7 @@ class DashboardFinancialSummaryItem extends StatelessWidget {
   final Color color;
 
   const DashboardFinancialSummaryItem({
+    super.key,
     required this.title,
     required this.value,
     required this.color,
@@ -242,7 +272,7 @@ class DashboardFinancialSummaryItem extends StatelessWidget {
 class DashboardTopInventoryItems extends StatelessWidget {
   final List<InventoryItem> items;
 
-  const DashboardTopInventoryItems({required this.items});
+  const DashboardTopInventoryItems({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -288,6 +318,7 @@ class DashboardTopProducts extends StatelessWidget {
   final List<InventoryItem> inventoryItems;
 
   const DashboardTopProducts({
+    super.key,
     required this.products,
     required this.inventoryItems,
   });

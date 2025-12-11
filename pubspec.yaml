@@ -19,7 +19,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.0-93.1.beta
+  sdk: ^3.10.3
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -41,6 +41,9 @@ dependencies:
   # For charts
   fl_chart: ^0.68.0
 
+  # For connectivity detection
+  connectivity_plus: ^6.0.1
+
   # For PDF generation
   pdf: ^3.10.8
   printing: ^5.12.1
@@ -59,8 +62,29 @@ dependencies:
   # For generating unique IDs
   uuid: ^4.5.1
 
+  # For logging
+  logging: ^1.2.0
+
+  # For dependency injection
+  get_it: ^7.6.4
+
+  # For state management
+  flutter_riverpod: ^2.4.9
+
+  # For WebSocket support
+  web_socket_channel: ^2.4.0
+
+  # For CSV handling
+  csv: ^6.0.0
+
+  # For reactive programming and debounced search
+  rxdart: ^0.27.7
+
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -69,6 +93,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  mockito: ^5.4.5
+  build_runner: ^2.4.11
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

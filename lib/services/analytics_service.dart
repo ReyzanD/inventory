@@ -1,5 +1,8 @@
 import '../models/inventory_item.dart';
 import '../models/product.dart';
+import '../utils/unit_converter.dart';
+import '../utils/list_extensions.dart';
+import '../constants.dart';
 
 class AnalyticsService {
   static Map<String, dynamic> calculateDashboardData({
@@ -17,7 +20,9 @@ class AnalyticsService {
     final totalProducts = products.length;
     final totalInventoryItems = inventoryItems.length;
     final lowStockItems = inventoryItems
-        .where((item) => item.quantity < 10)
+        .where(
+          (item) => item.quantity < AppConstants.defaultLowStockItemsThreshold,
+        )
         .length;
 
     return {
@@ -36,10 +41,7 @@ class AnalyticsService {
     double totalCogs = 0.0;
 
     // Create a map of inventory items for quick lookup
-    Map<String, InventoryItem> inventoryMap = {};
-    for (final item in items) {
-      inventoryMap[item.id] = item;
-    }
+    final inventoryMap = items.toMapById();
 
     for (final component in product.components) {
       final inventoryItem = inventoryMap[component.inventoryItemId];
@@ -59,29 +61,12 @@ class AnalyticsService {
     return totalCogs;
   }
 
+  // Use centralized unit conversion utility
   static double getConversionFactor(
     String inventoryUnit,
     String componentUnit,
   ) {
-    // Standard conversions
-    if (inventoryUnit == 'kg' && componentUnit == 'g')
-      return 1000.0; // 1kg = 1000g
-    if (inventoryUnit == 'g' && componentUnit == 'kg')
-      return 0.001; // 1g = 0.001kg
-    if (inventoryUnit == 'kg' && componentUnit == 'mg')
-      return 1000000.0; // 1kg = 1000000mg
-    if (inventoryUnit == 'g' && componentUnit == 'mg')
-      return 1000.0; // 1g = 1000mg
-    if (inventoryUnit == 'L' && componentUnit == 'ml')
-      return 1000.0; // 1L = 1000ml
-    if (inventoryUnit == 'ml' && componentUnit == 'L')
-      return 0.001; // 1ml = 0.001L
-
-    // Same units
-    if (inventoryUnit == componentUnit) return 1.0;
-
-    // Default: assume same units if not specified
-    return 1.0;
+    return UnitConverter.getConversionFactor(inventoryUnit, componentUnit);
   }
 
   static Map<String, double> getCategoryValues(List<InventoryItem> items) {

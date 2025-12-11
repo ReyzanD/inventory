@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import '../models/product.dart';
 import '../services/database_mappers.dart';
+import '../utils/database_mapper_helper.dart';
 
 class ProductDatabaseService {
   static const String tableProducts = "products";
@@ -73,21 +74,97 @@ class ProductDatabaseService {
   }
 
   Future<List<Product>> getAllProducts() async {
+    // Optimize: Get all products first
     final List<Map<String, dynamic>> maps = await db.query(tableProducts);
 
-    List<Product> products = [];
-    for (var map in maps) {
-      // Get components for this product
-      final List<Map<String, dynamic>> componentMaps = await db.query(
-        'product_components',
-        where: "productId = ?",
-        whereArgs: [map['id']],
-      );
+    if (maps.isEmpty) return [];
 
-      products.add(DatabaseMappers.mapToProduct(map, componentMaps));
+    // Optimize: Get all components in one query instead of N queries (fix N+1 problem)
+    final List<String> productIds = maps.map((m) => m['id'] as String).toList();
+    final placeholders = productIds.map((_) => '?').join(',');
+
+    final List<Map<String, dynamic>> allComponentMaps = await db.query(
+      'product_components',
+      where: "productId IN ($placeholders)",
+      whereArgs: productIds,
+    );
+
+    // Group components by productId for O(1) lookup
+    final Map<String, List<Map<String, dynamic>>> componentsByProductId = {};
+    for (var componentMap in allComponentMaps) {
+      final productId = componentMap['productId'] as String;
+      componentsByProductId.putIfAbsent(productId, () => []).add(componentMap);
     }
 
-    return products;
+    // Build products list with pre-fetched components
+    return DatabaseMapperHelper.mapToProducts(maps, componentsByProductId);
+  }
+
+  /// Get products with pagination
+  Future<List<Product>> getProductsPaginated({
+    int limit = 50,
+    int offset = 0,
+    String? category,
+    String? orderBy,
+    bool ascending = false,
+  }) async {
+    String whereClause = '1=1';
+    List<dynamic> whereArgs = [];
+
+    if (category != null && category.isNotEmpty) {
+      whereClause += ' AND category = ?';
+      whereArgs.add(category);
+    }
+
+    // Get products with pagination
+    final List<Map<String, dynamic>> maps = await db.query(
+      tableProducts,
+      where: whereClause,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
+      orderBy: orderBy ?? 'dateCreated ${ascending ? 'ASC' : 'DESC'}',
+      limit: limit,
+      offset: offset,
+    );
+
+    if (maps.isEmpty) return [];
+
+    // Optimize: Get all components in one query
+    final List<String> productIds = maps.map((m) => m['id'] as String).toList();
+    final placeholders = productIds.map((_) => '?').join(',');
+
+    final List<Map<String, dynamic>> allComponentMaps = await db.query(
+      'product_components',
+      where: "productId IN ($placeholders)",
+      whereArgs: productIds,
+    );
+
+    // Group components by productId
+    final Map<String, List<Map<String, dynamic>>> componentsByProductId = {};
+    for (var componentMap in allComponentMaps) {
+      final productId = componentMap['productId'] as String;
+      componentsByProductId.putIfAbsent(productId, () => []).add(componentMap);
+    }
+
+    // Build products list
+    return DatabaseMapperHelper.mapToProducts(maps, componentsByProductId);
+  }
+
+  /// Get products count
+  Future<int> getProductsCount({String? category}) async {
+    String whereClause = '1=1';
+    List<dynamic> whereArgs = [];
+
+    if (category != null && category.isNotEmpty) {
+      whereClause += ' AND category = ?';
+      whereArgs.add(category);
+    }
+
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $tableProducts WHERE $whereClause',
+      whereArgs.isNotEmpty ? whereArgs : null,
+    );
+
+    return (result.first['count'] as int?) ?? 0;
   }
 
   Future<Product?> getProductById(String id) async {

@@ -34,7 +34,7 @@ class InventoryItemCard extends StatelessWidget {
       elevation: 2,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () {},
+        onTap: () {}, // Keep empty onTap to maintain ink ripple effect
         child: Padding(
           padding: EdgeInsets.all(16),
           child: Column(
@@ -75,10 +75,27 @@ class InventoryItemCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.monetization_on, size: 14, color: Colors.green),
+                            Icon(
+                              Icons.monetization_on,
+                              size: 14,
+                              color: Colors.green,
+                            ),
                             SizedBox(width: 4),
-                            Text('Cost: ', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                            RupiahText(amount: costPerUnit, style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                            Text(
+                              'Cost: ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              '${costPerUnit.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                         SizedBox(height: 2),
@@ -86,8 +103,21 @@ class InventoryItemCard extends StatelessWidget {
                           children: [
                             Icon(Icons.sell, size: 14, color: Colors.blue),
                             SizedBox(width: 4),
-                            Text('Sell: ', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                            RupiahText(amount: sellingPricePerUnit, style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                            Text(
+                              'Sell: ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              '${sellingPricePerUnit.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -99,7 +129,10 @@ class InventoryItemCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.grey[200],
                             borderRadius: BorderRadius.circular(12),
@@ -129,8 +162,8 @@ class InventoryItemCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: RupiahText(
-                      amount: quantity * costPerUnit,
+                    child: Text(
+                      '${(quantity * costPerUnit).toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

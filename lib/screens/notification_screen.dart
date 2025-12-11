@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../widgets/notification_item.dart';
 import '../models/inventory_notification.dart';
 import '../providers/inventory_provider.dart';
+import '../services/logging_service.dart';
 
 class NotificationScreen extends StatelessWidget {
   @override
@@ -30,17 +31,12 @@ class NotificationScreen extends StatelessWidget {
                       SizedBox(height: 16),
                       Text(
                         'No notifications',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                       SizedBox(height: 8),
                       Text(
                         'You\'re all caught up!',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -53,7 +49,9 @@ class NotificationScreen extends StatelessWidget {
                       notification: notification,
                       onTap: () {
                         // Mark as read and navigate to relevant screen
-                        print('Notification tapped: ${notification.title}');
+                        LoggingService.info(
+                          'Notification tapped: ${notification.title}',
+                        );
                         // Could navigate to the inventory item screen here
                       },
                       onDismiss: () {

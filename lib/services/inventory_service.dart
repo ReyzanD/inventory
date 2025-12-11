@@ -1,10 +1,12 @@
 import '../models/inventory_item.dart';
 import '../models/product.dart';
 import 'local_database_service.dart';
+import 'inventory_service_interface.dart';
 
-class InventoryService {
+class InventoryService implements IInventoryService {
   final LocalDatabaseService _localService = LocalDatabaseService();
 
+  @override
   // Initialize services
   Future<void> init() async {
     // Initialize local database

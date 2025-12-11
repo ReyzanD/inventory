@@ -8,13 +8,13 @@ class CurrencyTextFormField extends StatelessWidget {
   final bool withDecimals;
 
   const CurrencyTextFormField({
-    Key? key,
+    super.key,
     this.controller,
     required this.label,
     this.validator,
     this.onChanged,
     this.withDecimals = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

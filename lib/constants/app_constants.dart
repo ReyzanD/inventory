@@ -1,15 +1,15 @@
 // Currency constants
-const String CURRENCY_SYMBOL = 'Rp ';
-const String CURRENCY_LOCALE = 'id_ID';
+const String currencySymbol = 'Rp ';
+const String currencyLocale = 'id_ID';
 
 // Database constants
-const String DATABASE_NAME = 'InventoryManagement.db';
-const String INVENTORY_TABLE = 'inventory';
-const String PRODUCTS_TABLE = 'products';
-const String PRODUCT_COMPONENTS_TABLE = 'product_components';
+const String databaseName = 'InventoryManagement.db';
+const String inventoryTable = 'inventory';
+const String productsTable = 'products';
+const String productComponentsTable = 'product_components';
 
 // Unit conversion constants
-const Map<String, double> UNIT_CONVERSIONS = {
+const Map<String, double> unitConversions = {
   'kg_to_g': 1000.0,
   'g_to_kg': 0.001,
   'kg_to_mg': 1000000.0,

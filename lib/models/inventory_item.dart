@@ -1,3 +1,5 @@
+import '../utils/type_converter.dart';
+
 class InventoryItem {
   final String id;
   final String name;
@@ -8,6 +10,8 @@ class InventoryItem {
   final double sellingPricePerUnit; // price per unit if sold individually
   final DateTime dateAdded;
   final String category;
+  final double lowStockThreshold; // configurable low stock threshold
+  final DateTime? expiryDate; // optional expiry date for perishable items
 
   InventoryItem({
     required this.id,
@@ -19,6 +23,8 @@ class InventoryItem {
     required this.sellingPricePerUnit,
     required this.dateAdded,
     required this.category,
+    this.lowStockThreshold = 5.0, // Default threshold to 5
+    this.expiryDate,
   });
 
   // Calculate total cost for the current inventory
@@ -36,21 +42,25 @@ class InventoryItem {
       'sellingPricePerUnit': sellingPricePerUnit,
       'dateAdded': dateAdded.millisecondsSinceEpoch,
       'category': category,
+      'lowStockThreshold': lowStockThreshold,
+      'expiryDate': expiryDate?.millisecondsSinceEpoch,
     };
   }
 
   // Create from Map
   factory InventoryItem.fromMap(Map<String, dynamic> map) {
     return InventoryItem(
-      id: map['id'] ?? '',
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      quantity: (map['quantity'] is int) ? (map['quantity'] as int).toDouble() : map['quantity']?.toDouble() ?? 0.0,
-      unit: map['unit'] ?? '',
-      costPerUnit: (map['costPerUnit'] is int) ? (map['costPerUnit'] as int).toDouble() : map['costPerUnit']?.toDouble() ?? 0.0,
-      sellingPricePerUnit: (map['sellingPricePerUnit'] is int) ? (map['sellingPricePerUnit'] as int).toDouble() : map['sellingPricePerUnit']?.toDouble() ?? 0.0,
-      dateAdded: DateTime.fromMillisecondsSinceEpoch(map['dateAdded'] ?? DateTime.now().millisecondsSinceEpoch),
-      category: map['category'] ?? '',
+      id: TypeConverter.toStringValue(map['id']),
+      name: TypeConverter.toStringValue(map['name']),
+      description: TypeConverter.toStringValue(map['description']),
+      quantity: TypeConverter.toDouble(map['quantity']),
+      unit: TypeConverter.toStringValue(map['unit']),
+      costPerUnit: TypeConverter.toDouble(map['costPerUnit']),
+      sellingPricePerUnit: TypeConverter.toDouble(map['sellingPricePerUnit']),
+      dateAdded: TypeConverter.toDateTime(map['dateAdded']),
+      category: TypeConverter.toStringValue(map['category']),
+      lowStockThreshold: TypeConverter.toDouble(map['lowStockThreshold'], 5.0),
+      expiryDate: map['expiryDate'] != null ? DateTime.fromMillisecondsSinceEpoch(TypeConverter.toInt(map['expiryDate'])) : null,
     );
   }
 }

@@ -18,57 +18,58 @@ class POSProductGrid extends StatelessWidget {
             ),
             SizedBox(height: 12),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5, // More columns for sidebar layout
-                  childAspectRatio: 0.9, // Slightly more square
-                  crossAxisSpacing: 6,
-                  mainAxisSpacing: 6,
-                ),
-                itemCount: provider.products.length,
-                itemBuilder: (context, index) {
-                  final product = provider.products[index];
-                  // Don't check inventory for POS, allow sales regardless
-
-                  return Card(
-                    child: InkWell(
-                      onTap: () {
-                        // This will need to be handled by the parent widget
-                        // through a callback function
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.all(4), // Even smaller padding
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.production_quantity_limits,
-                              size: 24, // Smaller icon
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            SizedBox(height: 2), // Less space
-                            Text(
-                              product.name,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 9, // Smaller font
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            SizedBox(height: 1), // Less space
-                            RupiahText(
-                              amount: product.sellingPrice,
-                              style: TextStyle(
-                                fontSize: 10, // Smaller font
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = (constraints.maxWidth / 160)
+                      .clamp(2, 5)
+                      .toInt();
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: 0.9,
+                      crossAxisSpacing: 6,
+                      mainAxisSpacing: 6,
                     ),
+                    itemCount: provider.products.length,
+                    itemBuilder: (context, index) {
+                      final product = provider.products[index];
+                      // Don't check inventory for POS, allow sales regardless
+
+                      return Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(4), // Even smaller padding
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.production_quantity_limits,
+                                size: 24, // Smaller icon
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              SizedBox(height: 2), // Less space
+                              Text(
+                                product.name,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 9, // Smaller font
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 1), // Less space
+                              RupiahText(
+                                amount: product.sellingPrice,
+                                style: TextStyle(
+                                  fontSize: 10, // Smaller font
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -127,7 +128,23 @@ class _POSCartState extends State<POSCart> {
                   onPressed: widget.cart.isEmpty
                       ? null
                       : () {
+                          final removedItems = List<PosTransactionItem>.from(
+                            widget.cart,
+                          );
                           widget.onCartChanged([]);
+                          ScaffoldMessenger.of(context)
+                            ..hideCurrentSnackBar()
+                            ..showSnackBar(
+                              SnackBar(
+                                content: Text('Cart cleared'),
+                                action: SnackBarAction(
+                                  label: 'UNDO',
+                                  onPressed: () {
+                                    widget.onCartChanged(removedItems);
+                                  },
+                                ),
+                              ),
+                            );
                         },
                   child: Text(
                     'Clear Cart',
@@ -152,12 +169,34 @@ class _POSCartState extends State<POSCart> {
                         return Dismissible(
                           key: Key(item.productId + index.toString()),
                           direction: DismissDirection.endToStart,
-                          onDismissed: (direction) {
+                          onDismissed: (direction) async {
+                            // Add slight delay to prevent conflicts with mouse tracking
+                            await Future.delayed(Duration(milliseconds: 50));
                             final newCart = List<PosTransactionItem>.from(
                               widget.cart,
                             );
-                            newCart.removeAt(index);
+                            final removed = newCart.removeAt(index);
                             widget.onCartChanged(newCart);
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${removed.productName} removed',
+                                  ),
+                                  action: SnackBarAction(
+                                    label: 'UNDO',
+                                    onPressed: () {
+                                      final restored =
+                                          List<PosTransactionItem>.from(
+                                            newCart,
+                                          );
+                                      restored.insert(index, removed);
+                                      widget.onCartChanged(restored);
+                                    },
+                                  ),
+                                ),
+                              );
                           },
                           background: Container(
                             color: Colors.red,

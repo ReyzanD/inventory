@@ -17,6 +17,20 @@ class DashboardCategoryChart extends StatelessWidget {
           (categoryValues[item.category] ?? 0) + item.totalCost;
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 720;
+
+    // If there is no data or the total is zero, show a friendly placeholder
+    if (categoryValues.isEmpty ||
+        categoryValues.values.fold<double>(0, (a, b) => a + b) <= 0) {
+      return Center(
+        child: Text(
+          'No data available for chart',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+      );
+    }
+
     // Prepare data for pie chart
     List<PieChartSectionData> sections = [];
     int index = 0;
@@ -30,13 +44,15 @@ class DashboardCategoryChart extends StatelessWidget {
       Colors.pink,
     ];
 
+    // Calculate total once to avoid division by zero and NaN values
+    final double total = categoryValues.values.fold<double>(0, (a, b) => a + b);
+
     categoryValues.forEach((category, value) {
       sections.add(
         PieChartSectionData(
           color: colors[index % colors.length],
           value: value,
-          title:
-              '${(value / categoryValues.values.fold(0, (a, b) => a + b) * 100).round()}%',
+          title: '${((value / total) * 100).round()}%',
           radius: 50,
           titleStyle: TextStyle(
             fontSize: 12,
@@ -48,16 +64,18 @@ class DashboardCategoryChart extends StatelessWidget {
       index++;
     });
 
-    return PieChart(
-      PieChartData(
-        sections: sections,
-        centerSpaceRadius: 40,
-        sectionsSpace: 2,
-        startDegreeOffset: 0,
-        pieTouchData: PieTouchData(
-          touchCallback: (FlTouchEvent event, pieTouchResponse) {
-            // Handle chart touch
-          },
+    return Padding(
+      padding: EdgeInsets.all(isNarrow ? 8 : 0),
+      child: PieChart(
+        PieChartData(
+          sections: sections,
+          centerSpaceRadius: isNarrow ? 32 : 40,
+          sectionsSpace: 2,
+          startDegreeOffset: 0,
+          pieTouchData: PieTouchData(
+            enabled:
+                false, // Disable touch interactions to prevent mouse tracker errors
+          ),
         ),
       ),
     );

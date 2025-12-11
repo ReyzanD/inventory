@@ -1,5 +1,44 @@
 import 'package:flutter/material.dart';
 
+/// Application-wide constants
+class AppConstants {
+  // User constants
+  static const String defaultUserId = 'current_user';
+
+  // Validation limits
+  static const int minNameLength = 2;
+  static const int maxNameLength = 100;
+  static const int maxDescriptionLength = 500;
+  static const double maxQuantity = 999999.0;
+  static const double maxPrice = 999999.0;
+
+  // Default values
+  static const double defaultLowStockThreshold = 5.0;
+  static const int defaultLowStockItemsThreshold = 10;
+
+  // Pagination
+  static const int defaultPageSize = 50;
+  static const int maxPageSize = 1000;
+
+  // Date formats
+  static const String dateFormat = 'MMM dd, yyyy';
+  static const String dateTimeFormat = 'MMM dd, yyyy HH:mm';
+
+  // Units
+  static const List<String> commonUnits = [
+    'pcs',
+    'kg',
+    'g',
+    'mg',
+    'L',
+    'ml',
+    'm',
+    'cm',
+    'm²',
+    'm³',
+  ];
+}
+
 class AppGradients {
   static const primaryGradient = LinearGradient(
     colors: [Color(0xFF1E3A9A), Color(0xFF3B82F6), Color(0xFF60A5FA)],
@@ -37,11 +76,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get PreferredSize => Size.fromHeight(kToolbarHeight);
-
-  @override
-  // TODO: implement preferredSize
-  Size get preferredSize => throw UnimplementedError();
+  Size get preferredSize => Size.fromHeight(kToolbarHeight);
 }
 
 class GradientCard extends StatelessWidget {
@@ -57,7 +92,7 @@ class GradientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
+            color: Colors.blue.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: Offset(0, 4),
           ),

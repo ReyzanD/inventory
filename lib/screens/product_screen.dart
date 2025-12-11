@@ -6,8 +6,25 @@ import '../models/product.dart';
 import 'add_product_screen.dart';
 import '../widgets/currency_widgets.dart';
 import '../widgets/product_card.dart';
+import '../widgets/search_and_filter_bar.dart';
+import '../widgets/loading_widgets.dart';
+import '../utils/error_handler.dart';
+import '../utils/provider_extensions.dart';
+import '../utils/filter_helper.dart';
+import '../utils/sort_helper.dart';
+import '../utils/list_extensions.dart';
+import '../widgets/empty_state_widget.dart';
 
-class ProductScreen extends StatelessWidget {
+class ProductScreen extends StatefulWidget {
+  @override
+  _ProductScreenState createState() => _ProductScreenState();
+}
+
+class _ProductScreenState extends State<ProductScreen> {
+  String _searchQuery = '';
+  String _selectedCategory = '';
+  String _selectedSort = 'Name A-Z';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,96 +39,275 @@ class ProductScreen extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (context) => AddProductScreen()),
           ).then((_) {
-            Provider.of<InventoryProvider>(context, listen: false).loadProducts();
+            context.inventoryProvider.loadProducts();
           });
         },
         child: Icon(Icons.add),
       ),
       body: Consumer<InventoryProvider>(
         builder: (context, provider, child) {
-          if (provider.products.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.production_quantity_limits,
-                    size: 80,
-                    color: Colors.grey[400],
+          // Show loading indicator when loading
+          if (provider.isLoadingProducts) {
+            return LoadingIndicator(message: 'Loading products...');
+          }
+
+          // Error banner if load failed
+          if (provider.productsError != null) {
+            return Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: Colors.red.withOpacity(0.1),
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: Colors.red),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          ErrorHandler.getUserFriendlyMessage(
+                            provider.productsError,
+                          ),
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          context.inventoryProvider.loadProducts();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No products found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Unable to load products.',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Tap the + button to create your first product',
-                    style: TextStyle(color: Colors.grey[500]),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
-          return ListView.builder(
-            itemCount: provider.products.length,
-            itemBuilder: (context, index) {
-              final product = provider.products[index];
-              final cogs = provider.calculateProductCogs(product.id);
-              final profit = product.sellingPrice - cogs;
+          // Get unique categories for the filter dropdown
+          final categories = provider.products.extractUniqueCategories();
 
-              // Create a list of component descriptions
-              List<String> componentsList = product.components.map((component) {
-                final inventoryItem = provider.getInventoryItemById(component.inventoryItemId);
-                return '${inventoryItem?.name ?? 'Unknown Item'}: ${component.quantityNeeded.toStringAsFixed(2)} ${component.unit}';
-              }).toList();
+          if (provider.products.isEmpty) {
+            return EmptyStateWidget(
+              icon: Icons.production_quantity_limits,
+              title: 'No products found',
+              subtitle: 'Tap the + button to create your first product',
+            );
+          }
 
-              return ProductCard(
-                name: product.name,
-                sellingPrice: product.sellingPrice,
-                cogs: cogs,
-                profit: profit,
-                componentsCount: product.components.length,
-                category: product.category,
-                componentsList: componentsList,
-                onEdit: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => AddProductScreen(product: product)),
-                  ).then((_) {
-                    Provider.of<InventoryProvider>(context, listen: false).loadProducts();
+          // Apply all filters and sorting using helper utilities
+          List<Product> filteredProducts = FilterHelper.applyProductFilters(
+            products: provider.products,
+            searchQuery: _searchQuery,
+            category: _selectedCategory,
+          );
+
+          // Apply sorting
+          filteredProducts = SortHelper.sortProducts(
+            filteredProducts,
+            _selectedSort,
+          );
+
+          return Column(
+            children: [
+              // Search and filter bar
+              SearchAndFilterBar(
+                hintText: 'Search products...',
+                categories: categories,
+                sortOptions: [
+                  'Name A-Z',
+                  'Name Z-A',
+                  'Price High-Low',
+                  'Price Low-High',
+                  'Date Added (Newest)',
+                ],
+                onSearchChanged: (query) {
+                  setState(() {
+                    _searchQuery = query;
                   });
                 },
-                onDelete: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Delete Product'),
-                        content: Text('Are you sure you want to delete ${product.name}?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              provider.deleteProduct(product.id);
-                              Navigator.of(context).pop();
+                onCategoryChanged: (category) {
+                  setState(() {
+                    _selectedCategory = category ?? '';
+                  });
+                },
+                onSortChanged: (sortOption) {
+                  setState(() {
+                    _selectedSort = sortOption ?? 'Name A-Z';
+                  });
+                },
+                onStockRangeChanged: (min, max) {
+                  // Do nothing for product screen
+                },
+                onDateRangeChanged: (start, end) {
+                  // Do nothing for product screen
+                },
+              ),
+              // Products list
+              Expanded(
+                child: filteredProducts.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 60,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'No products match your search',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = filteredProducts[index];
+                          final cogs = provider.calculateProductCogs(
+                            product.id,
+                          );
+                          final profit = product.sellingPrice - cogs;
+
+                          // Create a list of component descriptions
+                          List<String> componentsList = product.components.map((
+                            component,
+                          ) {
+                            final inventoryItem = provider.getInventoryItemById(
+                              component.inventoryItemId,
+                            );
+                            return '${inventoryItem?.name ?? 'Unknown Item'}: ${component.quantityNeeded.toStringAsFixed(2)} ${component.unit}';
+                          }).toList();
+
+                          return ProductCard(
+                            name: product.name,
+                            sellingPrice: product.sellingPrice,
+                            cogs: cogs,
+                            profit: profit,
+                            componentsCount: product.components.length,
+                            category: product.category,
+                            componentsList: componentsList,
+                            onEdit: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AddProductScreen(product: product),
+                                ),
+                              ).then((_) {
+                                Provider.of<InventoryProvider>(
+                                  context,
+                                  listen: false,
+                                ).loadProducts();
+                              });
                             },
-                            child: Text('Delete', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-                onExpansionChanged: () {
-                  // Optional: Handle expansion changes if needed
-                },
-              );
-            },
+                            onDelete: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text('Delete Product'),
+                                    content: Text(
+                                      'Are you sure you want to delete ${product.name}?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () async {
+                                          final deletedProduct = product;
+                                          try {
+                                            await provider.deleteProduct(
+                                              product.id,
+                                            );
+                                            Navigator.of(context).pop();
+                                            // Show undoable delete message
+                                            ScaffoldMessenger.of(context)
+                                              ..hideCurrentSnackBar()
+                                              ..showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Product deleted',
+                                                  ),
+                                                  action: SnackBarAction(
+                                                    label: 'UNDO',
+                                                    onPressed: () async {
+                                                      await Provider.of<
+                                                            InventoryProvider
+                                                          >(
+                                                            context,
+                                                            listen: false,
+                                                          )
+                                                          .addProduct(
+                                                            deletedProduct,
+                                                          );
+                                                    },
+                                                  ),
+                                                ),
+                                              );
+                                          } catch (e) {
+                                            Navigator.of(context).pop();
+                                            // Show user-friendly error message
+                                            ErrorHandler.showErrorSnackBar(
+                                              context,
+                                              e,
+                                              customMessage:
+                                                  'Failed to delete product',
+                                              onRetry: () async {
+                                                try {
+                                                  await provider.deleteProduct(
+                                                    product.id,
+                                                  );
+                                                  Navigator.of(context).pop();
+                                                  ErrorHandler.showSuccessSnackBar(
+                                                    context,
+                                                    'Product deleted successfully',
+                                                  );
+                                                } catch (retryError) {
+                                                  ErrorHandler.showErrorSnackBar(
+                                                    context,
+                                                    retryError,
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          }
+                                        },
+                                        child: Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            onExpansionChanged: () {
+                              // Optional: Handle expansion changes if needed
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),

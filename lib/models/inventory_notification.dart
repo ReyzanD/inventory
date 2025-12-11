@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/type_converter.dart';
 
 enum NotificationType {
   lowStock,
@@ -31,11 +32,12 @@ class InventoryNotification {
     required String itemName,
     required double currentQuantity,
     required String unit,
+    double threshold = 5.0,
   }) {
     return InventoryNotification(
       id: id,
       title: 'Low Stock Alert',
-      message: '$itemName has low stock: $currentQuantity $unit remaining',
+      message: '$itemName has low stock: $currentQuantity $unit remaining (threshold: $threshold $unit)',
       type: NotificationType.lowStock,
       timestamp: DateTime.now(),
     );
@@ -72,13 +74,13 @@ class InventoryNotification {
   // Create from map
   static InventoryNotification fromMap(Map<String, dynamic> map) {
     return InventoryNotification(
-      id: map['id'],
-      title: map['title'],
-      message: map['message'],
-      type: NotificationType.values[map['type']],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      isRead: map['isRead'] == 1,
-      inventoryItemId: map['inventoryItemId'],
+      id: TypeConverter.toStringValue(map['id']),
+      title: TypeConverter.toStringValue(map['title']),
+      message: TypeConverter.toStringValue(map['message']),
+      type: NotificationType.values[TypeConverter.toInt(map['type'], 0)],
+      timestamp: TypeConverter.toDateTime(map['timestamp']),
+      isRead: TypeConverter.toBool(map['isRead'], false),
+      inventoryItemId: TypeConverter.toStringValue(map['inventoryItemId']),
     );
   }
 

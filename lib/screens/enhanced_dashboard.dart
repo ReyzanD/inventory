@@ -7,6 +7,8 @@ import '../services/analytics_service.dart';
 import 'pdf_report_generator.dart';
 
 class EnhancedDashboard extends StatefulWidget {
+  const EnhancedDashboard({super.key});
+
   @override
   _EnhancedDashboardState createState() => _EnhancedDashboardState();
 }

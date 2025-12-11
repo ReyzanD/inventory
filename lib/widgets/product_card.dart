@@ -62,11 +62,8 @@ class ProductCard extends StatelessWidget {
           ],
         ),
         subtitle: Text(
-          'COGS: ${cogs > 0 ? '${profitPercentage.toStringAsFixed(1)}%' : 'N/A'} profit | $componentsCount components',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+          'COGS: ${cogs > 0 ? '${cogs.toStringAsFixed(2)}' : 'N/A'} | ${cogs > 0 ? '${profitPercentage.toStringAsFixed(1)}%' : 'N/A'} profit | $componentsCount components',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
         children: [
           Padding(
@@ -76,24 +73,22 @@ class ProductCard extends StatelessWidget {
               children: [
                 Text(
                   'Components ($componentsCount):',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 SizedBox(height: 8),
-                ...componentsList.map((component) => Container(
-                  margin: EdgeInsets.only(bottom: 4),
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    component,
-                    style: TextStyle(fontSize: 12),
-                  ),
-                )).toList(),
+                ...componentsList
+                    .map(
+                      (component) => Container(
+                        margin: EdgeInsets.only(bottom: 4),
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(component, style: TextStyle(fontSize: 12)),
+                      ),
+                    )
+                    .toList(),
                 SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,

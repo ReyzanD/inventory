@@ -1,13 +1,42 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'dart:ui' as ui;
 import '../models/inventory_item.dart';
 import '../models/product.dart';
 import '../models/inventory_notification.dart';
 import '../models/inventory_transaction.dart';
 import '../services/inventory_service.dart';
 import '../services/notification_service.dart';
+import '../services/logging_service.dart';
+import '../services/audit_service.dart';
+import '../services/connectivity_service.dart';
+import '../services/inventory_service_interface.dart';
+import '../utils/unit_converter.dart';
+import '../utils/list_extensions.dart';
+import '../utils/inventory_reduction_helper.dart';
+import '../constants.dart';
+import 'package:get_it/get_it.dart';
 
 class InventoryProvider extends ChangeNotifier {
-  final InventoryService _inventoryService = InventoryService();
+  final IInventoryService _inventoryService;
+  final AuditService _auditService = AuditService();
+  final ConnectivityService? _connectivityService;
+
+  bool _isOnline = true;
+  bool get isOnline => _isOnline;
+  StreamSubscription<bool>? _connectivitySubscription;
+
+  // Public constructor for normal use
+  InventoryProvider()
+    : _inventoryService = InventoryService(),
+      _connectivityService = GetIt.instance<ConnectivityService>();
+
+  // Named constructor for testing purposes to inject mock services
+  InventoryProvider.forTesting(
+    IInventoryService inventoryService, [
+    ConnectivityService? connectivityService,
+  ]) : _inventoryService = inventoryService,
+       _connectivityService = connectivityService;
   List<InventoryItem> _inventoryItems = [];
   List<Product> _products = [];
 
@@ -15,6 +44,19 @@ class InventoryProvider extends ChangeNotifier {
   List<Product> get products => _products;
   List<InventoryNotification> _notifications = [];
   List<InventoryNotification> get notifications => _notifications;
+
+  // Loading states
+  bool _isLoadingInventory = false;
+  String? _inventoryError;
+  bool _isLoadingProducts = false;
+  String? _productsError;
+  bool _isLoadingNotifications = false;
+
+  bool get isLoadingInventory => _isLoadingInventory;
+  String? get inventoryError => _inventoryError;
+  bool get isLoadingProducts => _isLoadingProducts;
+  String? get productsError => _productsError;
+  bool get isLoadingNotifications => _isLoadingNotifications;
 
   // Initialize data
   Future<void> init() async {
@@ -24,29 +66,134 @@ class InventoryProvider extends ChangeNotifier {
     await checkNotifications();
   }
 
+  // Track operations that are in progress to avoid conflicts with mouse tracker
+  bool _isLoadingInventoryOperation = false;
+  bool _isLoadingProductsOperation = false;
+  bool _isLoadingNotificationsOperation = false;
+
+  // Debouncing variables to prevent multiple rapid notifications
+  Timer? _inventoryNotificationTimer;
+  Timer? _productsNotificationTimer;
+  Timer? _notificationsNotificationTimer;
+
+  // Safe notification method to debounce UI updates and prevent mouse tracking conflicts
+  void _safeNotifyListeners(String operation) {
+    switch (operation) {
+      case 'inventory':
+        _inventoryNotificationTimer?.cancel();
+        _inventoryNotificationTimer = Timer(Duration(milliseconds: 50), () {
+          // Only notify if provider is still active (not disposed)
+          // ChangeNotifier doesn't have isDisposed, so just call notifyListeners safely
+          try {
+            notifyListeners();
+          } catch (e) {
+            // If there's an error during notification (like during disposal), catch it silently
+          }
+          _inventoryNotificationTimer = null;
+        });
+        break;
+      case 'products':
+        _productsNotificationTimer?.cancel();
+        _productsNotificationTimer = Timer(Duration(milliseconds: 50), () {
+          // Only notify if provider is still active (not disposed)
+          // ChangeNotifier doesn't have isDisposed, so just call notifyListeners safely
+          try {
+            notifyListeners();
+          } catch (e) {
+            // If there's an error during notification (like during disposal), catch it silently
+          }
+          _productsNotificationTimer = null;
+        });
+        break;
+      case 'notifications':
+        _notificationsNotificationTimer?.cancel();
+        _notificationsNotificationTimer = Timer(Duration(milliseconds: 50), () {
+          // Only notify if provider is still active (not disposed)
+          // ChangeNotifier doesn't have isDisposed, so just call notifyListeners safely
+          try {
+            notifyListeners();
+          } catch (e) {
+            // If there's an error during notification (like during disposal), catch it silently
+          }
+          _notificationsNotificationTimer = null;
+        });
+        break;
+    }
+  }
+
   // Check for notifications (low stock, expiry, etc.)
   Future<void> checkNotifications() async {
-    // Check for low stock items
-    final lowStockNotifications = _checkLowStockItems();
+    if (_isLoadingNotificationsOperation)
+      return; // Prevent concurrent operations
+    _isLoadingNotificationsOperation = true;
 
-    // Combine all notifications
-    _notifications = lowStockNotifications;
-    notifyListeners();
+    _isLoadingNotifications = true;
+    _safeNotifyListeners('notifications');
+    try {
+      // Check for low stock items
+      final lowStockNotifications = _checkLowStockItems();
+
+      // Check for expiry items
+      final expiryNotifications = _checkExpiryItems();
+
+      // Combine all notifications
+      _notifications = [...lowStockNotifications, ...expiryNotifications];
+    } catch (e) {
+      LoggingService.severe('Error checking notifications: $e');
+    } finally {
+      _isLoadingNotifications = false;
+      // Use safe notification to avoid conflicts with mouse updates
+      _safeNotifyListeners('notifications');
+      _isLoadingNotificationsOperation = false;
+    }
+  }
+
+  // Check for expiry items
+  List<InventoryNotification> _checkExpiryItems() {
+    List<InventoryNotification> notifications = [];
+    final now = DateTime.now();
+    final warningPeriod = Duration(days: 7); // Alert 7 days before expiry
+
+    for (final item in _inventoryItems) {
+      if (item.expiryDate != null) {
+        final daysToExpiry = item.expiryDate!.difference(now).inDays;
+
+        // Alert if item expires within the warning period
+        if (daysToExpiry >= 0 && daysToExpiry <= 7) {
+          final notification = InventoryNotification.expiry(
+            id: 'expiry_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+            itemName: item.name,
+            expiryDate: item.expiryDate!,
+          );
+          notifications.add(notification);
+        } else if (item.expiryDate!.isBefore(now)) {
+          // Alert if item is already expired
+          final notification = InventoryNotification.expiry(
+            id: 'expired_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+            itemName: item.name,
+            expiryDate: item.expiryDate!,
+          );
+          notifications.add(notification);
+        }
+      }
+    }
+
+    return notifications;
   }
 
   // Check for low stock items
   List<InventoryNotification> _checkLowStockItems() {
     List<InventoryNotification> notifications = [];
 
-    // For now, we'll use a default low stock threshold of 5
-    // In a real app, this could be configurable per item
     for (final item in _inventoryItems) {
-      if (item.quantity <= 5) { // Threshold could be configurable
+      // Use item-specific low stock threshold
+      if (item.quantity <= item.lowStockThreshold) {
         final notification = InventoryNotification.lowStock(
           id: 'low_stock_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
           itemName: item.name,
           currentQuantity: item.quantity,
           unit: item.unit,
+          threshold: item.lowStockThreshold,
         );
         notifications.add(notification);
       }
@@ -56,7 +203,7 @@ class InventoryProvider extends ChangeNotifier {
   }
 
   // Track an inventory transaction
-  void addTransaction({
+  Future<void> addTransaction({
     required String inventoryItemId,
     required String itemName,
     required TransactionType type,
@@ -64,53 +211,188 @@ class InventoryProvider extends ChangeNotifier {
     required String unit,
     String? reason,
     String? userId,
-  }) {
-    // For now, just print the transaction
-    // In a real app, this would be stored in a database
-    print('Transaction: $type $quantity $unit of $itemName (ID: $inventoryItemId)');
+  }) async {
+    // Use AuditService to log the transaction
+    await _auditService.logTransaction(
+      inventoryItemId: inventoryItemId,
+      itemName: itemName,
+      type: type,
+      quantity: quantity,
+      unit: unit,
+      reason: reason ?? 'Transaction logged',
+      userId: userId ?? AppConstants.defaultUserId,
+    );
+    LoggingService.info(
+      'Transaction: $type $quantity $unit of $itemName (ID: $inventoryItemId)',
+    );
   }
 
   // Inventory Items
   Future<void> loadInventoryItems() async {
-    _inventoryItems = await _inventoryService.getAllInventoryItems();
-    await checkNotifications(); // Check notifications after loading inventory
-    notifyListeners();
+    if (_isLoadingInventoryOperation) return; // Prevent concurrent operations
+    _isLoadingInventoryOperation = true;
+
+    _isLoadingInventory = true;
+    _inventoryError = null;
+    _safeNotifyListeners('inventory');
+    try {
+      _inventoryItems = await _inventoryService.getAllInventoryItems();
+      await checkNotifications(); // Check notifications after loading inventory
+    } catch (e) {
+      _inventoryError = e.toString();
+      LoggingService.severe('Error loading inventory items: $e');
+      rethrow;
+    } finally {
+      _isLoadingInventory = false;
+      _safeNotifyListeners('inventory');
+      _isLoadingInventoryOperation = false;
+    }
   }
 
   Future<void> addInventoryItem(InventoryItem item) async {
-    await _inventoryService.addInventoryItem(item);
-    await loadInventoryItems(); // Refresh the list
+    try {
+      await _inventoryService.addInventoryItem(item);
+      await loadInventoryItems(); // Refresh the list
+
+      // Log transaction for audit trail
+      await _auditService.logTransaction(
+        inventoryItemId: item.id,
+        itemName: item.name,
+        type: TransactionType.addition,
+        quantity: item.quantity,
+        unit: item.unit,
+        reason: 'Item added to inventory',
+        userId: AppConstants
+            .defaultUserId, // In a real app, this would be the actual user ID
+      );
+    } catch (e) {
+      LoggingService.severe('Error adding inventory item: $e');
+      rethrow; // Re-throw to be handled by UI layer
+    }
   }
 
   Future<void> updateInventoryItem(InventoryItem item) async {
-    await _inventoryService.updateInventoryItem(item);
-    await loadInventoryItems(); // Refresh the list
+    try {
+      // Get the original item to determine the quantity change
+      final originalItem = _inventoryItems.firstWhere(
+        (i) => i.id == item.id,
+        orElse: () => item,
+      );
+      final quantityDifference = item.quantity - originalItem.quantity;
+
+      await _inventoryService.updateInventoryItem(item);
+      await loadInventoryItems(); // Refresh the list
+
+      // Log transaction for audit trail
+      if (quantityDifference != 0) {
+        final transactionType = quantityDifference > 0
+            ? TransactionType.addition
+            : TransactionType.deduction;
+        await _auditService.logTransaction(
+          inventoryItemId: item.id,
+          itemName: item.name,
+          type: transactionType,
+          quantity: quantityDifference.abs(),
+          unit: item.unit,
+          reason: 'Item updated',
+          userId: AppConstants
+              .defaultUserId, // In a real app, this would be the actual user ID
+        );
+      }
+    } catch (e) {
+      LoggingService.severe('Error updating inventory item: $e');
+      rethrow; // Re-throw to be handled by UI layer
+    }
   }
 
   Future<void> deleteInventoryItem(String id) async {
-    await _inventoryService.deleteInventoryItem(id);
-    await loadInventoryItems(); // Refresh the list
+    try {
+      final item = _inventoryItems.firstWhere(
+        (i) => i.id == id,
+        orElse: () => InventoryItem(
+          id: id,
+          name: 'Unknown',
+          description: '',
+          quantity: 0,
+          unit: '',
+          costPerUnit: 0,
+          sellingPricePerUnit: 0,
+          dateAdded: DateTime.now(),
+          category: '',
+        ),
+      );
+
+      await _inventoryService.deleteInventoryItem(id);
+      await loadInventoryItems(); // Refresh the list
+
+      // Log transaction for audit trail (log as deduction of all remaining quantity)
+      if (item.quantity > 0) {
+        await _auditService.logTransaction(
+          inventoryItemId: item.id,
+          itemName: item.name,
+          type: TransactionType.deduction,
+          quantity: item.quantity,
+          unit: item.unit,
+          reason: 'Item deleted from inventory',
+          userId: AppConstants
+              .defaultUserId, // In a real app, this would be the actual user ID
+        );
+      }
+    } catch (e) {
+      LoggingService.severe('Error deleting inventory item: $e');
+      rethrow; // Re-throw to be handled by UI layer
+    }
   }
 
   // Products
   Future<void> loadProducts() async {
-    _products = await _inventoryService.getAllProducts();
-    notifyListeners();
+    if (_isLoadingProductsOperation) return; // Prevent concurrent operations
+    _isLoadingProductsOperation = true;
+
+    _isLoadingProducts = true;
+    _productsError = null;
+    _safeNotifyListeners('products');
+    try {
+      _products = await _inventoryService.getAllProducts();
+    } catch (e) {
+      _productsError = e.toString();
+      LoggingService.severe('Error loading products: $e');
+      rethrow;
+    } finally {
+      _isLoadingProducts = false;
+      _safeNotifyListeners('products');
+      _isLoadingProductsOperation = false;
+    }
   }
 
   Future<void> addProduct(Product product) async {
-    await _inventoryService.addProduct(product);
-    await loadProducts(); // Refresh the list
+    try {
+      await _inventoryService.addProduct(product);
+      await loadProducts(); // Refresh the list
+    } catch (e) {
+      LoggingService.severe('Error adding product: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateProduct(Product product) async {
-    await _inventoryService.updateProduct(product);
-    await loadProducts(); // Refresh the list
+    try {
+      await _inventoryService.updateProduct(product);
+      await loadProducts(); // Refresh the list
+    } catch (e) {
+      LoggingService.severe('Error updating product: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteProduct(String id) async {
-    await _inventoryService.deleteProduct(id);
-    await loadProducts(); // Refresh the list
+    try {
+      await _inventoryService.deleteProduct(id);
+      await loadProducts(); // Refresh the list
+    } catch (e) {
+      LoggingService.severe('Error deleting product: $e');
+      rethrow;
+    }
   }
 
   // Find inventory item by ID
@@ -124,82 +406,140 @@ class InventoryProvider extends ChangeNotifier {
 
   // Calculate COGS for a product
   double calculateProductCogs(String productId) {
-    final product = _products.firstWhere((p) => p.id == productId);
-    if (product == null) return 0.0;
+    try {
+      final product = _products.firstWhere((p) => p.id == productId);
+      if (product == null) return 0.0;
 
-    // Create a map of inventory items for quick lookup
-    Map<String, InventoryItem> inventoryMap = {};
-    for (final item in _inventoryItems) {
-      inventoryMap[item.id] = item;
+      // Create a map of inventory items for quick lookup
+      final inventoryMap = _inventoryItems.toMapById();
+
+      return product.calculateCogs(inventoryMap);
+    } catch (e) {
+      // Product not found
+      return 0.0;
     }
-
-    return product.calculateCogs(inventoryMap);
   }
 
   // Check if there's enough inventory for a product
   bool hasEnoughInventoryForProduct(String productId) {
-    final product = _products.firstWhere((p) => p.id == productId);
-    if (product == null) return false;
+    try {
+      final product = _products.firstWhere((p) => p.id == productId);
+      if (product == null) return false;
 
-    // Create a map of inventory items for quick lookup
-    Map<String, InventoryItem> inventoryMap = {};
-    for (final item in _inventoryItems) {
-      inventoryMap[item.id] = item;
+      // Create a map of inventory items for quick lookup
+      final inventoryMap = _inventoryItems.toMapById();
+
+      return product.hasEnoughInventory(inventoryMap);
+    } catch (e) {
+      // Product not found
+      return false;
     }
-
-    return product.hasEnoughInventory(inventoryMap);
   }
 
   // Reduce inventory after selling a product
   Future<void> reduceInventoryForSoldProduct(String productId) async {
-    final product = _products.firstWhere((p) => p.id == productId);
-    if (product == null) return;
+    try {
+      final product = _products.firstWhere((p) => p.id == productId);
+      if (product == null) return;
 
-    // For each component in the product, reduce the quantity from the inventory
-    for (final component in product.components) {
-      try {
-        final item = _inventoryItems.firstWhere((i) => i.id == component.inventoryItemId);
-        if (item != null) {
-          // Handle unit conversion properly
-          // Calculate how much of the inventory item's unit is needed
-          double conversionFactor = _getConversionFactor(item.unit, component.unit);
-          double amountToReduce = (component.quantityNeeded / conversionFactor);
-
-          final updatedItem = InventoryItem(
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            quantity: item.quantity - amountToReduce,
-            unit: item.unit,
-            costPerUnit: item.costPerUnit,
-            sellingPricePerUnit: item.sellingPricePerUnit,
-            dateAdded: item.dateAdded,
-            category: item.category,
+      // Process each component reduction
+      for (final component in product.components) {
+        try {
+          final item = _inventoryItems.firstWhere(
+            (i) => i.id == component.inventoryItemId,
           );
 
-          await updateInventoryItem(updatedItem);
+          final updatedItem =
+              await InventoryReductionHelper.processComponentReduction(
+                item: item,
+                component: component,
+                productName: product.name,
+                auditService: _auditService,
+              );
+
+          if (updatedItem != null) {
+            await updateInventoryItem(updatedItem);
+          }
+        } catch (e) {
+          // Item not found, continue to next component
+          continue;
         }
-      } catch (e) {
-        // Item not found, continue
-        continue;
       }
+    } catch (e) {
+      // Product not found, do nothing
+      return;
     }
   }
 
-  // Simple conversion factor - could be expanded to handle more complex conversions
-  double _getConversionFactor(String inventoryUnit, String componentUnit) {
-    // Standard conversions
-    if (inventoryUnit == 'kg' && componentUnit == 'g') return 1000.0; // 1kg = 1000g
-    if (inventoryUnit == 'g' && componentUnit == 'kg') return 0.001; // 1g = 0.001kg
-    if (inventoryUnit == 'kg' && componentUnit == 'mg') return 1000000.0; // 1kg = 1000000mg
-    if (inventoryUnit == 'g' && componentUnit == 'mg') return 1000.0; // 1g = 1000mg
-    if (inventoryUnit == 'L' && componentUnit == 'ml') return 1000.0; // 1L = 1000ml
-    if (inventoryUnit == 'ml' && componentUnit == 'L') return 0.001; // 1ml = 0.001L
+  @override
+  void dispose() {
+    // Cancel all timers to prevent notifications after disposal
+    _inventoryNotificationTimer?.cancel();
+    _productsNotificationTimer?.cancel();
+    _notificationsNotificationTimer?.cancel();
+    super.dispose();
+  }
 
-    // Same units
-    if (inventoryUnit == componentUnit) return 1.0;
+  // Removed _getConversionFactor - using InventoryReductionHelper instead
 
-    // Default: assume same units if not specified
-    return 1.0;
+  // Methods for backup/restore functionality
+  List<InventoryItem> getExportableInventoryItems() {
+    return List.from(_inventoryItems);
+  }
+
+  List<Product> getExportableProducts() {
+    return List.from(_products);
+  }
+
+  Future<void> importInventoryItems(List<InventoryItem> items) async {
+    for (final item in items) {
+      try {
+        // Check if item already exists (by ID)
+        final existingItem = _inventoryItems.firstWhere(
+          (i) => i.id == item.id,
+          orElse: () => item, // If not found, return the imported item
+        );
+
+        if (existingItem.id == item.id) {
+          // Item exists, update it
+          await _inventoryService.updateInventoryItem(item);
+        } else {
+          // Item doesn't exist, add it
+          await _inventoryService.addInventoryItem(item);
+        }
+      } catch (e) {
+        // If firstWhere doesn't find an item, it throws an error
+        // This means item doesn't exist, so we add it
+        await _inventoryService.addInventoryItem(item);
+      }
+    }
+    // Refresh the list after import
+    await loadInventoryItems();
+  }
+
+  Future<void> importProducts(List<Product> products) async {
+    for (final product in products) {
+      try {
+        // Check if product already exists (by ID)
+        final existingProduct = _products.firstWhere(
+          (p) => p.id == product.id,
+          orElse: () => product, // If not found, return the imported product
+        );
+
+        if (existingProduct.id == product.id) {
+          // Product exists, update it
+          await _inventoryService.updateProduct(product);
+        } else {
+          // Product doesn't exist, add it
+          await _inventoryService.addProduct(product);
+        }
+      } catch (e) {
+        // If firstWhere doesn't find a product, it throws an error
+        // This means product doesn't exist, so we add it
+        await _inventoryService.addProduct(product);
+      }
+    }
+    // Refresh the list after import
+    await loadProducts();
   }
 }

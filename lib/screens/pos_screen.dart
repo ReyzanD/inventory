@@ -15,17 +15,31 @@ class _POSScreenState extends State<POSScreen> {
   double _taxRate = 0.0;
   double _discount = 0.0;
 
+  bool _isAddingToCart = false; // Flag to prevent rapid updates
+
   void _addToCart(Product product) {
-    setState(() {
-      _cart.add(
-        PosTransactionItem(
-          productId: product.id,
-          productName: product.name,
-          quantity: 1,
-          unitPrice: product.sellingPrice,
-          totalItemPrice: product.sellingPrice,
-        ),
-      );
+    if (_isAddingToCart) return; // Prevent multiple rapid additions
+
+    _isAddingToCart = true;
+    if (mounted) {
+      setState(() {
+        _cart.add(
+          PosTransactionItem(
+            productId: product.id,
+            productName: product.name,
+            quantity: 1,
+            unitPrice: product.sellingPrice,
+            totalItemPrice: product.sellingPrice,
+          ),
+        );
+      });
+    }
+
+    // Reset the flag after a short delay
+    Future.delayed(Duration(milliseconds: 150), () {
+      if (mounted) {
+        _isAddingToCart = false;
+      }
     });
   }
 
@@ -167,19 +181,28 @@ class _POSScreenState extends State<POSScreen> {
                       taxRate: _taxRate,
                       discount: _discount,
                       onCartChanged: (newCart) {
-                        setState(() {
-                          _cart = newCart;
-                        });
+                        // Prevent multiple rapid updates that can interfere with mouse tracking
+                        if (mounted) {
+                          setState(() {
+                            _cart = newCart;
+                          });
+                        }
                       },
                       onTaxRateChanged: (newTaxRate) {
-                        setState(() {
-                          _taxRate = newTaxRate;
-                        });
+                        // Prevent multiple rapid updates that can interfere with mouse tracking
+                        if (mounted) {
+                          setState(() {
+                            _taxRate = newTaxRate;
+                          });
+                        }
                       },
                       onDiscountChanged: (newDiscount) {
-                        setState(() {
-                          _discount = newDiscount;
-                        });
+                        // Prevent multiple rapid updates that can interfere with mouse tracking
+                        if (mounted) {
+                          setState(() {
+                            _discount = newDiscount;
+                          });
+                        }
                       },
                       onProcessTransaction: _processTransaction,
                     ),

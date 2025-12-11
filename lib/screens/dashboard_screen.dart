@@ -59,7 +59,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                   // Inventory Distribution Chart
                   DashboardCard(
                     title: 'Inventory Distribution by Category',
-                    child: Container(
+                    child: SizedBox(
                       height: 250,
                       child: DashboardCategoryChart(
                         items: provider.inventoryItems,
@@ -67,7 +67,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                     ),
                   ),
 
-                  SizedBox(height: 16),
+                  SizedBox(height: 20),
 
                   // Inventory Status Card
                   DashboardCard(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../utils/type_converter.dart';
 
 enum TransactionType {
   addition,
@@ -48,15 +49,15 @@ class InventoryTransaction {
   // Create from map
   factory InventoryTransaction.fromMap(Map<String, dynamic> map) {
     return InventoryTransaction(
-      id: map['id'],
-      inventoryItemId: map['inventoryItemId'],
-      itemName: map['itemName'],
-      type: TransactionType.values[map['type']],
-      quantity: map['quantity']?.toDouble() ?? 0.0,
-      unit: map['unit'],
-      reason: map['reason'],
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      userId: map['userId'],
+      id: TypeConverter.toStringValue(map['id']),
+      inventoryItemId: TypeConverter.toStringValue(map['inventoryItemId']),
+      itemName: TypeConverter.toStringValue(map['itemName']),
+      type: TransactionType.values[TypeConverter.toInt(map['type'], 0)],
+      quantity: TypeConverter.toDouble(map['quantity']),
+      unit: TypeConverter.toStringValue(map['unit']),
+      reason: TypeConverter.toStringValue(map['reason']),
+      timestamp: TypeConverter.toDateTime(map['timestamp']),
+      userId: TypeConverter.toStringValue(map['userId']),
     );
   }
 

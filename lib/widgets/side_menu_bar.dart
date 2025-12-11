@@ -6,16 +6,19 @@ class SideMenuBar extends StatelessWidget {
   final bool isCollapsed;
 
   const SideMenuBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
     this.isCollapsed = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final collapsed = isCollapsed || screenWidth < 720;
+
     return Container(
-      width: isCollapsed ? 70 : 250,
+      width: collapsed ? 60 : 240,
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         boxShadow: [
@@ -32,21 +35,24 @@ class SideMenuBar extends StatelessWidget {
             padding: EdgeInsets.all(16),
             child: Row(
               children: [
-                !isCollapsed 
-                  ? Text(
+                if (!collapsed)
+                  Expanded(
+                    child: Text(
                       'Inventory System',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
-                    )
-                  : Text(
-                      'I',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      softWrap: false,
                     ),
+                  )
+                else
+                  Text(
+                    'I',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
               ],
             ),
           ),
@@ -60,7 +66,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 0,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -69,7 +75,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 1,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -78,7 +84,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 2,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -87,7 +93,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 3,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -96,7 +102,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 4,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -105,7 +111,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 5,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
                 _buildSideMenuTile(
                   context: context,
@@ -114,7 +120,7 @@ class SideMenuBar extends StatelessWidget {
                   index: 6,
                   currentIndex: currentIndex,
                   onTap: onTap,
-                  isCollapsed: isCollapsed,
+                  isCollapsed: collapsed,
                 ),
               ],
             ),
@@ -134,11 +140,11 @@ class SideMenuBar extends StatelessWidget {
     required bool isCollapsed,
   }) {
     final bool isSelected = index == currentIndex;
-    
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isSelected 
+        color: isSelected
             ? Theme.of(context).primaryColor.withOpacity(0.1)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
@@ -146,7 +152,7 @@ class SideMenuBar extends StatelessWidget {
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected 
+          color: isSelected
               ? Theme.of(context).primaryColor
               : Theme.of(context).textTheme.bodyMedium?.color,
         ),
@@ -156,7 +162,7 @@ class SideMenuBar extends StatelessWidget {
                 title,
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected 
+                  color: isSelected
                       ? Theme.of(context).primaryColor
                       : Theme.of(context).textTheme.bodyMedium?.color,
                 ),
@@ -164,7 +170,7 @@ class SideMenuBar extends StatelessWidget {
         onTap: () => onTap(index),
         selected: isSelected,
         selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
-        horizontalTitleGap: 0,
+        horizontalTitleGap: 12,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );

@@ -6,6 +6,10 @@ import '../models/product.dart';
 import '../widgets/form_widgets.dart';
 import '../widgets/currency_widgets.dart';
 import '../widgets/product_components_widget.dart';
+import '../utils/validation_utils.dart';
+import '../utils/error_handler.dart';
+import '../utils/form_save_helper.dart';
+import '../utils/provider_extensions.dart';
 
 class AddProductScreen extends StatefulWidget {
   final Product? product; // Make product optional for editing
@@ -97,12 +101,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       labelText: 'Product Name',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter product name';
-                      }
-                      return null;
-                    },
+                    validator: ValidationUtils.validateName,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
@@ -111,20 +110,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       labelText: 'Description',
                       border: OutlineInputBorder(),
                     ),
+                    validator: ValidationUtils.validateDescription,
                   ),
                   SizedBox(height: 16),
                   CurrencyTextFormField(
                     controller: _sellingPriceController,
                     label: 'Selling Price',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter selling price';
-                      }
-                      if (double.tryParse(value) == null) {
-                        return 'Please enter a valid number';
-                      }
-                      return null;
-                    },
+                    validator: ValidationUtils.validatePrice,
                   ),
                   SizedBox(height: 16),
                   DropdownButtonFormField<String>(
@@ -187,54 +179,34 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     SizedBox(height: 16),
                   ],
                   ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        if (_components.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please add at least one component',
-                              ),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
+                    onPressed: () async {
+                      if (_components.isEmpty) {
+                        ErrorHandler.showErrorSnackBar(
+                          context,
+                          'Please add at least one component',
+                          customMessage: 'Please add at least one component',
+                        );
+                        return;
+                      }
 
-                        if (widget.product != null) {
-                          // Update existing product
-                          final updatedProduct = Product(
-                            id: widget.product!.id,
-                            name: _nameController.text,
-                            description: _descriptionController.text,
-                            sellingPrice: double.parse(
-                              _sellingPriceController.text,
-                            ),
-                            components: _components,
-                            dateCreated: widget
-                                .product!
-                                .dateCreated, // Keep original creation date
-                            category: _selectedCategory,
-                          );
+                      final success = await FormSaveHelper.saveProduct(
+                        context: context,
+                        formKey: _formKey,
+                        existingProduct: widget.product,
+                        name: _nameController.text,
+                        description: _descriptionController.text,
+                        sellingPrice: _sellingPriceController.text,
+                        category: _selectedCategory,
+                        components: _components,
+                        saveFunction: widget.product != null
+                            ? (product) => provider.updateProduct(product)
+                            : (product) => provider.addProduct(product),
+                        successMessage: widget.product != null
+                            ? 'Product updated successfully'
+                            : 'Product created successfully',
+                      );
 
-                          provider.updateProduct(updatedProduct);
-                        } else {
-                          // Create new product
-                          final newProduct = Product(
-                            id: Uuid().v4(),
-                            name: _nameController.text,
-                            description: _descriptionController.text,
-                            sellingPrice: double.parse(
-                              _sellingPriceController.text,
-                            ),
-                            components: _components,
-                            dateCreated: DateTime.now(),
-                            category: _selectedCategory,
-                          );
-
-                          provider.addProduct(newProduct);
-                        }
-
+                      if (success) {
                         Navigator.pop(context);
                       }
                     },

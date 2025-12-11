@@ -5,6 +5,10 @@ import '../providers/inventory_provider.dart';
 import '../models/inventory_item.dart';
 import '../widgets/form_widgets.dart';
 import '../widgets/currency_widgets.dart';
+import '../utils/validation_utils.dart';
+import '../utils/error_handler.dart';
+import '../utils/form_save_helper.dart';
+import '../utils/provider_extensions.dart';
 
 class AddInventoryItemScreen extends StatefulWidget {
   final InventoryItem? inventoryItem; // Make this optional for editing
@@ -22,13 +26,22 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
   late TextEditingController _quantityController;
   late TextEditingController _costPerUnitController;
   late TextEditingController _sellingPriceController;
+  late TextEditingController _lowStockThresholdController;
   late TextEditingController _categoryController;
 
   late String _selectedUnit;
   late String _selectedCategory;
+  DateTime? _expiryDate;
 
   List<String> _units = ['kg', 'g', 'mg', 'L', 'ml', 'pieces'];
-  List<String> _categories = ['General', 'Food', 'Beverages', 'Electronics', 'Clothing', 'Other'];
+  List<String> _categories = [
+    'General',
+    'Food',
+    'Beverages',
+    'Electronics',
+    'Clothing',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -38,13 +51,27 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
     if (widget.inventoryItem != null) {
       // Editing existing item
       _nameController = TextEditingController(text: widget.inventoryItem!.name);
-      _descriptionController = TextEditingController(text: widget.inventoryItem!.description);
-      _quantityController = TextEditingController(text: widget.inventoryItem!.quantity.toString());
-      _costPerUnitController = TextEditingController(text: widget.inventoryItem!.costPerUnit.toString());
-      _sellingPriceController = TextEditingController(text: widget.inventoryItem!.sellingPricePerUnit.toString());
-      _categoryController = TextEditingController(text: widget.inventoryItem!.category);
+      _descriptionController = TextEditingController(
+        text: widget.inventoryItem!.description,
+      );
+      _quantityController = TextEditingController(
+        text: widget.inventoryItem!.quantity.toString(),
+      );
+      _costPerUnitController = TextEditingController(
+        text: widget.inventoryItem!.costPerUnit.toString(),
+      );
+      _sellingPriceController = TextEditingController(
+        text: widget.inventoryItem!.sellingPricePerUnit.toString(),
+      );
+      _lowStockThresholdController = TextEditingController(
+        text: widget.inventoryItem!.lowStockThreshold.toString(),
+      );
+      _categoryController = TextEditingController(
+        text: widget.inventoryItem!.category,
+      );
       _selectedUnit = widget.inventoryItem!.unit;
       _selectedCategory = widget.inventoryItem!.category;
+      _expiryDate = widget.inventoryItem!.expiryDate;
     } else {
       // Adding new item
       _nameController = TextEditingController();
@@ -52,9 +79,11 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
       _quantityController = TextEditingController();
       _costPerUnitController = TextEditingController();
       _sellingPriceController = TextEditingController();
+      _lowStockThresholdController = TextEditingController(text: '5');
       _categoryController = TextEditingController();
       _selectedUnit = 'kg';
       _selectedCategory = 'General';
+      _expiryDate = null;
     }
   }
 
@@ -65,6 +94,7 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
     _quantityController.dispose();
     _costPerUnitController.dispose();
     _sellingPriceController.dispose();
+    _lowStockThresholdController.dispose();
     _categoryController.dispose();
     super.dispose();
   }
@@ -73,7 +103,11 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.inventoryItem != null ? 'Edit Inventory Item' : 'Add Inventory Item'),
+        title: Text(
+          widget.inventoryItem != null
+              ? 'Edit Inventory Item'
+              : 'Add Inventory Item',
+        ),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -89,12 +123,7 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                   labelText: 'Item Name',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter item name';
-                  }
-                  return null;
-                },
+                validator: ValidationUtils.validateName,
               ),
               SizedBox(height: 16),
               TextFormField(
@@ -103,6 +132,7 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                   labelText: 'Description',
                   border: OutlineInputBorder(),
                 ),
+                validator: ValidationUtils.validateDescription,
               ),
               SizedBox(height: 16),
               Row(
@@ -116,15 +146,7 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                         border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter quantity';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
+                      validator: ValidationUtils.validateQuantity,
                     ),
                   ),
                   SizedBox(width: 12),
@@ -136,9 +158,14 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                         labelText: 'Unit',
                         border: OutlineInputBorder(),
                       ),
-                      items: _units.map((unit) =>
-                        DropdownMenuItem(value: unit, child: Text(unit))
-                      ).toList(),
+                      items: _units
+                          .map(
+                            (unit) => DropdownMenuItem(
+                              value: unit,
+                              child: Text(unit),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         setState(() {
                           _selectedUnit = value!;
@@ -152,29 +179,13 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
               CurrencyTextFormField(
                 controller: _costPerUnitController,
                 label: 'Cost Per Unit',
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter cost per unit';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
+                validator: ValidationUtils.validatePrice,
               ),
               SizedBox(height: 16),
               CurrencyTextFormField(
                 controller: _sellingPriceController,
                 label: 'Selling Price Per Unit',
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter selling price per unit';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
+                validator: ValidationUtils.validatePrice,
               ),
               SizedBox(height: 16),
               CategoryDropdownFormField(
@@ -186,44 +197,71 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                   });
                 },
               ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _lowStockThresholdController,
+                decoration: InputDecoration(
+                  labelText: 'Low Stock Threshold',
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter minimum quantity before alert',
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) => ValidationUtils.validatePositiveNumber(
+                  value,
+                  'Low Stock Threshold',
+                ),
+              ),
+              SizedBox(height: 16),
+              // Expiry date field
+              ListTile(
+                title: Text('Expiry Date'),
+                subtitle: Text(
+                  _expiryDate != null
+                      ? 'Expires: ${_expiryDate!.day}/${_expiryDate!.month}/${_expiryDate!.year}'
+                      : 'No expiry date set',
+                ),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _expiryDate ?? DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _expiryDate = picked;
+                    });
+                  }
+                },
+              ),
               SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    if (widget.inventoryItem != null) {
-                      // Update existing item
-                      final updatedItem = InventoryItem(
-                        id: widget.inventoryItem!.id,
-                        name: _nameController.text,
-                        description: _descriptionController.text,
-                        quantity: double.parse(_quantityController.text),
-                        unit: _selectedUnit,
-                        costPerUnit: double.parse(_costPerUnitController.text),
-                        sellingPricePerUnit: double.parse(_sellingPriceController.text),
-                        dateAdded: widget.inventoryItem!.dateAdded, // Keep original date
-                        category: _selectedCategory,
-                      );
+                onPressed: () async {
+                  final success = await FormSaveHelper.saveInventoryItem(
+                    context: context,
+                    formKey: _formKey,
+                    existingItem: widget.inventoryItem,
+                    name: _nameController.text,
+                    description: _descriptionController.text,
+                    quantity: _quantityController.text,
+                    unit: _selectedUnit,
+                    costPerUnit: _costPerUnitController.text,
+                    sellingPrice: _sellingPriceController.text,
+                    category: _selectedCategory,
+                    lowStockThreshold: _lowStockThresholdController.text,
+                    expiryDate: _expiryDate,
+                    saveFunction: widget.inventoryItem != null
+                        ? (item) => context.inventoryProvider
+                              .updateInventoryItem(item)
+                        : (item) =>
+                              context.inventoryProvider.addInventoryItem(item),
+                    successMessage: widget.inventoryItem != null
+                        ? 'Inventory item updated successfully'
+                        : 'Inventory item added successfully',
+                  );
 
-                      Provider.of<InventoryProvider>(context, listen: false)
-                          .updateInventoryItem(updatedItem);
-                    } else {
-                      // Add new item
-                      final newItem = InventoryItem(
-                        id: Uuid().v4(),
-                        name: _nameController.text,
-                        description: _descriptionController.text,
-                        quantity: double.parse(_quantityController.text),
-                        unit: _selectedUnit,
-                        costPerUnit: double.parse(_costPerUnitController.text),
-                        sellingPricePerUnit: double.parse(_sellingPriceController.text),
-                        dateAdded: DateTime.now(),
-                        category: _selectedCategory,
-                      );
-
-                      Provider.of<InventoryProvider>(context, listen: false)
-                          .addInventoryItem(newItem);
-                    }
-
+                  if (success) {
                     Navigator.pop(context);
                   }
                 },
@@ -232,7 +270,9 @@ class _AddInventoryItemScreenState extends State<AddInventoryItemScreen> {
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: Text(widget.inventoryItem != null ? 'Update Item' : 'Add Item'),
+                child: Text(
+                  widget.inventoryItem != null ? 'Update Item' : 'Add Item',
+                ),
               ),
             ],
           ),

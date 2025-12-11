@@ -7,6 +7,14 @@ import 'add_inventory_item_screen.dart';
 import '../widgets/currency_widgets.dart';
 import '../widgets/inventory_item_card.dart';
 import '../widgets/search_and_filter_bar.dart';
+import '../utils/debouncer.dart';
+import '../widgets/loading_widgets.dart';
+import '../utils/error_handler.dart';
+import '../utils/provider_extensions.dart';
+import '../utils/filter_helper.dart';
+import '../utils/sort_helper.dart';
+import '../utils/list_extensions.dart';
+import '../widgets/empty_state_widget.dart';
 
 class InventoryScreen extends StatefulWidget {
   @override
@@ -16,10 +24,19 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   String _searchQuery = '';
   String _selectedCategory = '';
+  String _selectedSort = 'Name A-Z';
   double _minStock = 0.0;
   double _maxStock = 10000.0;
   DateTime? _startDate;
   DateTime? _endDate;
+
+  final Debouncer _debouncer = Debouncer();
+
+  @override
+  void dispose() {
+    _debouncer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,75 +52,87 @@ class _InventoryScreenState extends State<InventoryScreen> {
             context,
             MaterialPageRoute(builder: (context) => AddInventoryItemScreen()),
           ).then((_) {
-            Provider.of<InventoryProvider>(context, listen: false).loadInventoryItems();
+            context.inventoryProvider.loadInventoryItems();
           });
         },
         child: Icon(Icons.add),
       ),
       body: Consumer<InventoryProvider>(
         builder: (context, provider, child) {
-          // Get unique categories for the filter dropdown
-          final categories = provider.inventoryItems
-              .map((item) => item.category)
-              .toSet()
-              .toList();
+          // Show loading indicator when loading
+          if (provider.isLoadingInventory) {
+            return LoadingIndicator(message: 'Loading inventory items...');
+          }
 
-          if (provider.inventoryItems.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 80,
-                    color: Colors.grey[400],
+          // Error banner if load failed
+          if (provider.inventoryError != null) {
+            return Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: Colors.red.withOpacity(0.1),
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: Colors.red),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          ErrorHandler.getUserFriendlyMessage(
+                            provider.inventoryError,
+                          ),
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          context.inventoryProvider.loadInventoryItems();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No inventory items found',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Unable to load inventory.',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Tap the + button to add your first item',
-                    style: TextStyle(color: Colors.grey[500]),
-                  ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
-          // Filtered items based on search and filter criteria
-          List<InventoryItem> filteredItems = provider.inventoryItems;
+          // Get unique categories for the filter dropdown
+          final categories = provider.inventoryItems.extractUniqueCategories();
 
-          // Apply search filter
-          if (_searchQuery.isNotEmpty) {
-            filteredItems = filteredItems.where((item) =>
-                item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                item.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                item.category.toLowerCase().contains(_searchQuery.toLowerCase())
-            ).toList();
+          if (provider.inventoryItems.isEmpty) {
+            return EmptyStateWidget(
+              icon: Icons.inventory_2_outlined,
+              title: 'No inventory items found',
+              subtitle: 'Tap the + button to add your first item',
+            );
           }
 
-          // Apply category filter
-          if (_selectedCategory.isNotEmpty && _selectedCategory != 'All') {
-            filteredItems = filteredItems.where((item) =>
-                item.category.toLowerCase().contains(_selectedCategory.toLowerCase())
-            ).toList();
-          }
+          // Apply all filters and sorting using helper utilities
+          List<InventoryItem> filteredItems =
+              FilterHelper.applyInventoryFilters(
+                items: provider.inventoryItems,
+                searchQuery: _searchQuery,
+                category: _selectedCategory,
+                minStock: _minStock,
+                maxStock: _maxStock,
+                startDate: _startDate,
+                endDate: _endDate,
+              );
 
-          // Apply stock range filter
-          filteredItems = filteredItems.where((item) =>
-              item.quantity >= _minStock && item.quantity <= _maxStock
-          ).toList();
-
-          // Apply date range filter
-          if (_startDate != null && _endDate != null) {
-            filteredItems = filteredItems.where((item) =>
-                item.dateAdded.isAfter(_startDate!.subtract(Duration(days: 1))) &&
-                item.dateAdded.isBefore(_endDate!.add(Duration(days: 1)))
-            ).toList();
-          }
+          // Apply sorting
+          filteredItems = SortHelper.sortInventoryItems(
+            filteredItems,
+            _selectedSort,
+          );
 
           return Column(
             children: [
@@ -111,14 +140,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
               SearchAndFilterBar(
                 hintText: 'Search inventory items...',
                 categories: categories,
+                sortOptions: [
+                  'Name A-Z',
+                  'Name Z-A',
+                  'Quantity High-Low',
+                  'Quantity Low-High',
+                  'Date Added (Newest)',
+                  'Price High-Low',
+                ],
                 onSearchChanged: (query) {
-                  setState(() {
-                    _searchQuery = query;
-                  });
+                  // Use debounced search
+                  _debouncer.call(() {
+                    if (mounted) {
+                      setState(() {
+                        _searchQuery = query;
+                      });
+                    }
+                  }, milliseconds: 500);
                 },
                 onCategoryChanged: (category) {
                   setState(() {
-                    _selectedCategory = category;
+                    _selectedCategory = category ?? '';
+                  });
+                },
+                onSortChanged: (sortOption) {
+                  setState(() {
+                    _selectedSort = sortOption ?? 'Name A-Z';
                   });
                 },
                 onStockRangeChanged: (min, max) {
@@ -137,26 +184,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
               // Inventory list
               Expanded(
                 child: filteredItems.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 60,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'No items match your search',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                    ? EmptySearchStateWidget()
                     : ListView.builder(
                         itemCount: filteredItems.length,
                         itemBuilder: (context, index) {
@@ -173,9 +201,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             onEdit: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => AddInventoryItemScreen(inventoryItem: item)),
+                                MaterialPageRoute(
+                                  builder: (context) => AddInventoryItemScreen(
+                                    inventoryItem: item,
+                                  ),
+                                ),
                               ).then((_) {
-                                Provider.of<InventoryProvider>(context, listen: false).loadInventoryItems();
+                                Provider.of<InventoryProvider>(
+                                  context,
+                                  listen: false,
+                                ).loadInventoryItems();
                               });
                             },
                             onDelete: () {
@@ -184,18 +219,78 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 builder: (BuildContext context) {
                                   return AlertDialog(
                                     title: Text('Delete Item'),
-                                    content: Text('Are you sure you want to delete ${item.name}?'),
+                                    content: Text(
+                                      'Are you sure you want to delete ${item.name}?',
+                                    ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
                                         child: Text('Cancel'),
                                       ),
                                       TextButton(
-                                        onPressed: () {
-                                          provider.deleteInventoryItem(item.id);
-                                          Navigator.of(context).pop();
+                                        onPressed: () async {
+                                          final deletedItem = item;
+                                          try {
+                                            await provider.deleteInventoryItem(
+                                              item.id,
+                                            );
+                                            Navigator.of(context).pop();
+                                            // Show undoable delete message
+                                            ScaffoldMessenger.of(context)
+                                              ..hideCurrentSnackBar()
+                                              ..showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Item deleted'),
+                                                  action: SnackBarAction(
+                                                    label: 'UNDO',
+                                                    onPressed: () async {
+                                                      await Provider.of<
+                                                            InventoryProvider
+                                                          >(
+                                                            context,
+                                                            listen: false,
+                                                          )
+                                                          .addInventoryItem(
+                                                            deletedItem,
+                                                          );
+                                                    },
+                                                  ),
+                                                ),
+                                              );
+                                          } catch (e) {
+                                            Navigator.of(context).pop();
+                                            // Show user-friendly error message
+                                            ErrorHandler.showErrorSnackBar(
+                                              context,
+                                              e,
+                                              customMessage:
+                                                  'Failed to delete item',
+                                              onRetry: () async {
+                                                try {
+                                                  await provider
+                                                      .deleteInventoryItem(
+                                                        item.id,
+                                                      );
+                                                  Navigator.of(context).pop();
+                                                  ErrorHandler.showSuccessSnackBar(
+                                                    context,
+                                                    'Item deleted successfully',
+                                                  );
+                                                } catch (retryError) {
+                                                  ErrorHandler.showErrorSnackBar(
+                                                    context,
+                                                    retryError,
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          }
                                         },
-                                        child: Text('Delete', style: TextStyle(color: Colors.red)),
+                                        child: Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
                                       ),
                                     ],
                                   );

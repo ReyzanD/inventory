@@ -7,7 +7,6 @@ import '../models/inventory_item.dart';
 import '../models/product.dart';
 import '../models/inventory_notification.dart';
 import '../models/inventory_transaction.dart';
-import '../utils/unit_converter.dart';
 import '../utils/list_extensions.dart';
 import '../utils/inventory_reduction_helper.dart';
 import '../constants.dart';
@@ -244,7 +243,7 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
     state = state.copyWith(isLoadingNotifications: true);
     try {
       // Check for low stock items
-      final lowStockNotifications = _checkLowStockItems();
+      _checkLowStockItems();
       state = state.copyWith(isLoadingNotifications: false);
     } catch (e) {
       LoggingService.severe('Error checking notifications: $e');
@@ -279,7 +278,6 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
   double calculateProductCogs(String productId) {
     try {
       final product = state.products.firstWhere((p) => p.id == productId);
-      if (product == null) return 0.0;
 
       // Create a map of inventory items for quick lookup
       final inventoryMap = state.inventoryItems.toMapById();
@@ -295,7 +293,6 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
   bool hasEnoughInventoryForProduct(String productId) {
     try {
       final product = state.products.firstWhere((p) => p.id == productId);
-      if (product == null) return false;
 
       // Create a map of inventory items for quick lookup
       final inventoryMap = state.inventoryItems.toMapById();
@@ -311,7 +308,6 @@ class InventoryNotifier extends StateNotifier<InventoryState> {
   Future<void> reduceInventoryForSoldProduct(String productId) async {
     try {
       final product = state.products.firstWhere((p) => p.id == productId);
-      if (product == null) return;
 
       // Process each component reduction
       for (final component in product.components) {

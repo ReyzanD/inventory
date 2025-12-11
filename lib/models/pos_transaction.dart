@@ -1,5 +1,4 @@
 import 'package:intl/intl.dart';
-import 'product.dart';
 
 class PosTransactionItem {
   final String productId;

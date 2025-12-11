@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/inventory_provider.dart';
 import '../models/inventory_item.dart';
 import 'add_inventory_item_screen.dart';
-import '../widgets/currency_widgets.dart';
 import '../widgets/inventory_item_card.dart';
 import '../widgets/search_and_filter_bar.dart';
 import '../utils/debouncer.dart';

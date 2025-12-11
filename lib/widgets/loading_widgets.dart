@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final String message;
-  
-  const LoadingIndicator({Key? key, this.message = 'Loading...'}) : super(key: key);
+
+  const LoadingIndicator({Key? key, this.message = 'Loading...'})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +20,7 @@ class LoadingIndicator extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          Text(
-            message,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text(message, style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
@@ -32,12 +30,9 @@ class LoadingIndicator extends StatelessWidget {
 class ErrorBoundary extends StatefulWidget {
   final Widget child;
   final Widget Function(Object error, StackTrace stackTrace)? onError;
-  
-  const ErrorBoundary({
-    Key? key,
-    required this.child,
-    this.onError,
-  }) : super(key: key);
+
+  const ErrorBoundary({Key? key, required this.child, this.onError})
+    : super(key: key);
 
   @override
   State<ErrorBoundary> createState() => _ErrorBoundaryState();
@@ -45,7 +40,6 @@ class ErrorBoundary extends StatefulWidget {
 
 class _ErrorBoundaryState extends State<ErrorBoundary> {
   Object? _error;
-  StackTrace? _stackTrace;
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +49,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 80,
-              color: Colors.red,
-            ),
+            Icon(Icons.error_outline, size: 80, color: Colors.red),
             SizedBox(height: 16),
             Text(
               'Something went wrong',
@@ -80,7 +70,6 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
               onPressed: () {
                 setState(() {
                   _error = null;
-                  _stackTrace = null;
                 });
               },
               child: Text('Try Again'),
@@ -89,15 +78,13 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
         ),
       );
     }
-    
+
     return widget.child;
   }
 
-  @override
   void debugDidCatchError(Object error, StackTrace stack) {
     setState(() {
       _error = error;
-      _stackTrace = stack;
     });
   }
 }

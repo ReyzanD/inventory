@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/notification_item.dart';
-import '../models/inventory_notification.dart';
 import '../providers/inventory_provider.dart';
 import '../services/logging_service.dart';
 

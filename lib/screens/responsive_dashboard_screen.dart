@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'inventory_screen.dart';
 import 'product_screen.dart';
 import 'pos_screen.dart';

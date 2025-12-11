@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../themes/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override

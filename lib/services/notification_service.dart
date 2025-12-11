@@ -1,12 +1,7 @@
-import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../models/inventory_notification.dart';
-import '../services/local_database_service.dart';
 
 class NotificationService {
-  final LocalDatabaseService _dbService;
-
-  NotificationService(this._dbService);
 
   // Check for low stock items and create notifications
   Future<List<InventoryNotification>> checkLowStockItems(List<InventoryItem> items) async {
@@ -37,13 +32,14 @@ class NotificationService {
     final nextWeek = DateTime.now().add(Duration(days: 7));
 
     for (final item in items) {
-      // For now, we assume items have an expiry date stored in description or elsewhere
-      // In a real implementation, you'd have an expiryDate field in InventoryItem
-      // For demo purposes, let's assume we have a method to extract expiry dates
-      // For now, we'll create a mock implementation
-
-      // This is a simplified implementation - in reality you would check
-      // if the item has an expiry date and whether it's coming up
+      if (item.expiryDate != null && item.expiryDate!.isBefore(nextWeek)) {
+        final notification = InventoryNotification.expiry(
+          id: 'expiry_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
+          itemName: item.name,
+          expiryDate: item.expiryDate!,
+        );
+        notifications.add(notification);
+      }
     }
 
     return notifications;

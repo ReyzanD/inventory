@@ -58,7 +58,7 @@ class Supplier {
       city: map['city'] ?? '',
       country: map['country'] ?? '',
       taxId: map['taxId'] ?? '',
-      isActive: (map['isActive'] == 1) ?? true,
+      isActive: map['isActive'] == 1 || map['isActive'] == null,
       dateCreated: DateTime.fromMillisecondsSinceEpoch(map['dateCreated'] ?? DateTime.now().millisecondsSinceEpoch),
       dateUpdated: map['dateUpdated'] != null ? DateTime.fromMillisecondsSinceEpoch(map['dateUpdated']) : null,
     );

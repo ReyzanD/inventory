@@ -3,6 +3,7 @@ import 'package:inventory/models/product.dart';
 import 'package:rxdart/rxdart.dart';
 
 enum SortOrder { ascending, descending }
+
 enum SortField { name, quantity, dateAdded, category }
 
 class SearchFilterService {
@@ -11,7 +12,7 @@ class SearchFilterService {
 
   // For debouncing search input
   final BehaviorSubject<String> _searchSubject = BehaviorSubject.seeded('');
-  
+
   Stream<String> get searchStream => _searchSubject.stream;
 
   void setSearchQuery(String query) {
@@ -33,15 +34,17 @@ class SearchFilterService {
       filteredItems = filteredItems.where((item) {
         final lowerQuery = searchQuery.toLowerCase();
         return item.name.toLowerCase().contains(lowerQuery) ||
-               item.description.toLowerCase().contains(lowerQuery) ||
-               item.category.toLowerCase().contains(lowerQuery);
+            item.description.toLowerCase().contains(lowerQuery) ||
+            item.category.toLowerCase().contains(lowerQuery);
       }).toList();
     }
 
     // Apply category filter
     if (categoryFilter != null && categoryFilter.isNotEmpty) {
       filteredItems = filteredItems.where((item) {
-        return item.category.toLowerCase().contains(categoryFilter.toLowerCase());
+        return item.category.toLowerCase().contains(
+          categoryFilter.toLowerCase(),
+        );
       }).toList();
     }
 
@@ -59,12 +62,12 @@ class SearchFilterService {
           compare = a.dateAdded.compareTo(b.dateAdded);
           break;
         case SortField.category:
-          compare = a.category.toLowerCase().compareTo(b.category.toLowerCase());
+          compare = a.category.toLowerCase().compareTo(
+            b.category.toLowerCase(),
+          );
           break;
-        default:
-          compare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
       }
-      
+
       return sortOrder == SortOrder.ascending ? compare : -compare;
     });
 
@@ -83,18 +86,19 @@ class SearchFilterService {
 
     // Apply search filter
     if (searchQuery != null && searchQuery.isNotEmpty) {
+      final lowerQuery = searchQuery.toLowerCase();
       filteredProducts = filteredProducts.where((product) {
-        final lowerQuery = searchQuery!.toLowerCase();
         return product.name.toLowerCase().contains(lowerQuery) ||
-               product.description.toLowerCase().contains(lowerQuery) ||
-               product.category.toLowerCase().contains(lowerQuery);
+            product.description.toLowerCase().contains(lowerQuery) ||
+            product.category.toLowerCase().contains(lowerQuery);
       }).toList();
     }
 
     // Apply category filter
     if (categoryFilter != null && categoryFilter.isNotEmpty) {
+      final lowerCategory = categoryFilter.toLowerCase();
       filteredProducts = filteredProducts.where((product) {
-        return product.category.toLowerCase().contains(categoryFilter!.toLowerCase());
+        return product.category.toLowerCase().contains(lowerCategory);
       }).toList();
     }
 
@@ -109,15 +113,15 @@ class SearchFilterService {
           compare = a.dateCreated.compareTo(b.dateCreated);
           break;
         case SortField.category:
-          compare = a.category.toLowerCase().compareTo(b.category.toLowerCase());
+          compare = a.category.toLowerCase().compareTo(
+            b.category.toLowerCase(),
+          );
           break;
         case SortField.quantity: // Treat quantity as selling price for products
           compare = a.sellingPrice.compareTo(b.sellingPrice);
           break;
-        default:
-          compare = a.name.toLowerCase().compareTo(b.name.toLowerCase());
       }
-      
+
       return sortOrder == SortOrder.ascending ? compare : -compare;
     });
 

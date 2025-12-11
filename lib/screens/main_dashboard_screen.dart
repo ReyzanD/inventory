@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'inventory_screen.dart';
-import 'product_screen.dart';
-import 'pos_screen.dart';
-import 'dashboard_screen.dart';
 import 'responsive_dashboard_screen.dart';
 
 class DashboardScreen extends StatelessWidget {

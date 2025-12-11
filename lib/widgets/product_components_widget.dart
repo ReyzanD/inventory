@@ -133,7 +133,7 @@ class _ProductComponentsWidgetState extends State<ProductComponentsWidget> {
 
   void _addComponent(InventoryProvider provider) {
     if (_selectedInventoryItem.isNotEmpty) {
-      final item = provider.getInventoryItemById(_selectedInventoryItem)!;
+      provider.getInventoryItemById(_selectedInventoryItem);
 
       // Check if the inventory item is already added to components
       bool alreadyAdded = widget.components.any(

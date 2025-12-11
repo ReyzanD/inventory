@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
-import '../providers/inventory_provider.dart';
 import '../models/inventory_item.dart';
 import '../widgets/form_widgets.dart';
-import '../widgets/currency_widgets.dart';
 import '../utils/validation_utils.dart';
-import '../utils/error_handler.dart';
 import '../utils/form_save_helper.dart';
 import '../utils/provider_extensions.dart';
 

@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:inventory/services/backup_restore_service.dart';
 import 'package:inventory/providers/inventory_provider.dart';
-import 'package:inventory/models/inventory_item.dart';
-import 'package:inventory/models/product.dart';
 import '../utils/error_handler.dart';
 
 class BackupRestoreScreen extends StatefulWidget {

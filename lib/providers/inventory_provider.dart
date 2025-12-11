@@ -1,42 +1,27 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import 'dart:ui' as ui;
 import '../models/inventory_item.dart';
 import '../models/product.dart';
 import '../models/inventory_notification.dart';
 import '../models/inventory_transaction.dart';
 import '../services/inventory_service.dart';
-import '../services/notification_service.dart';
 import '../services/logging_service.dart';
 import '../services/audit_service.dart';
-import '../services/connectivity_service.dart';
 import '../services/inventory_service_interface.dart';
-import '../utils/unit_converter.dart';
 import '../utils/list_extensions.dart';
 import '../utils/inventory_reduction_helper.dart';
 import '../constants.dart';
-import 'package:get_it/get_it.dart';
 
 class InventoryProvider extends ChangeNotifier {
   final IInventoryService _inventoryService;
   final AuditService _auditService = AuditService();
-  final ConnectivityService? _connectivityService;
-
-  bool _isOnline = true;
-  bool get isOnline => _isOnline;
-  StreamSubscription<bool>? _connectivitySubscription;
 
   // Public constructor for normal use
-  InventoryProvider()
-    : _inventoryService = InventoryService(),
-      _connectivityService = GetIt.instance<ConnectivityService>();
+  InventoryProvider() : _inventoryService = InventoryService();
 
   // Named constructor for testing purposes to inject mock services
-  InventoryProvider.forTesting(
-    IInventoryService inventoryService, [
-    ConnectivityService? connectivityService,
-  ]) : _inventoryService = inventoryService,
-       _connectivityService = connectivityService;
+  InventoryProvider.forTesting(IInventoryService inventoryService)
+    : _inventoryService = inventoryService;
   List<InventoryItem> _inventoryItems = [];
   List<Product> _products = [];
 
@@ -152,14 +137,14 @@ class InventoryProvider extends ChangeNotifier {
   List<InventoryNotification> _checkExpiryItems() {
     List<InventoryNotification> notifications = [];
     final now = DateTime.now();
-    final warningPeriod = Duration(days: 7); // Alert 7 days before expiry
+    const warningDays = 7; // Alert 7 days before expiry
 
     for (final item in _inventoryItems) {
       if (item.expiryDate != null) {
         final daysToExpiry = item.expiryDate!.difference(now).inDays;
 
         // Alert if item expires within the warning period
-        if (daysToExpiry >= 0 && daysToExpiry <= 7) {
+        if (daysToExpiry >= 0 && daysToExpiry <= warningDays) {
           final notification = InventoryNotification.expiry(
             id: 'expiry_${item.id}_${DateTime.now().millisecondsSinceEpoch}',
             itemName: item.name,
@@ -408,7 +393,6 @@ class InventoryProvider extends ChangeNotifier {
   double calculateProductCogs(String productId) {
     try {
       final product = _products.firstWhere((p) => p.id == productId);
-      if (product == null) return 0.0;
 
       // Create a map of inventory items for quick lookup
       final inventoryMap = _inventoryItems.toMapById();
@@ -424,7 +408,6 @@ class InventoryProvider extends ChangeNotifier {
   bool hasEnoughInventoryForProduct(String productId) {
     try {
       final product = _products.firstWhere((p) => p.id == productId);
-      if (product == null) return false;
 
       // Create a map of inventory items for quick lookup
       final inventoryMap = _inventoryItems.toMapById();
@@ -440,7 +423,6 @@ class InventoryProvider extends ChangeNotifier {
   Future<void> reduceInventoryForSoldProduct(String productId) async {
     try {
       final product = _products.firstWhere((p) => p.id == productId);
-      if (product == null) return;
 
       // Process each component reduction
       for (final component in product.components) {

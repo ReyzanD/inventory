@@ -16,7 +16,9 @@ class _SupplierScreenState extends State<SupplierScreen> {
     List<Supplier> filteredSuppliers = _suppliers.where((supplier) {
       if (_searchQuery.isEmpty) return true;
       return supplier.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          supplier.contactName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          supplier.contactName.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
           supplier.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           supplier.phone.contains(_searchQuery);
     }).toList();
@@ -32,9 +34,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
           // Navigate to add supplier screen
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => AddSupplierScreen(),
-            ),
+            MaterialPageRoute(builder: (context) => AddSupplierScreen()),
           ).then((value) {
             // Refresh suppliers after adding/editing
             setState(() {});
@@ -71,11 +71,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.business,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
+                        Icon(Icons.business, size: 80, color: Colors.grey[400]),
                         SizedBox(height: 16),
                         Text(
                           'No suppliers found',
@@ -87,9 +83,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
                         SizedBox(height: 8),
                         Text(
                           'Tap the + button to add your first supplier',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                          ),
+                          style: TextStyle(color: Colors.grey[500]),
                         ),
                       ],
                     ),
@@ -99,15 +93,15 @@ class _SupplierScreenState extends State<SupplierScreen> {
                     itemBuilder: (context, index) {
                       final supplier = filteredSuppliers[index];
                       return Card(
-                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: ListTile(
                           contentPadding: EdgeInsets.all(16),
                           leading: CircleAvatar(
                             backgroundColor: Theme.of(context).primaryColor,
-                            child: Icon(
-                              Icons.business,
-                              color: Colors.white,
-                            ),
+                            child: Icon(Icons.business, color: Colors.white),
                           ),
                           title: Text(
                             supplier.name,
@@ -130,7 +124,8 @@ class _SupplierScreenState extends State<SupplierScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => SupplierDetailsScreen(supplier: supplier),
+                                builder: (context) =>
+                                    SupplierDetailsScreen(supplier: supplier),
                               ),
                             );
                           },
@@ -258,7 +253,9 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter email';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(
+                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                  ).hasMatch(value)) {
                     return 'Please enter a valid email';
                   }
                   return null;
@@ -366,9 +363,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
                   widget.supplier != null ? 'Update Supplier' : 'Add Supplier',
@@ -384,7 +379,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
   void _saveSupplier() {
     if (_formKey.currentState!.validate()) {
-      final supplier = Supplier(
+      // Create supplier object (not used yet, but kept for future database integration)
+      Supplier(
         id: widget.supplier?.id,
         name: _nameController.text,
         contactName: _contactNameController.text,
@@ -403,7 +399,9 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.supplier != null ? 'Supplier updated successfully' : 'Supplier added successfully',
+            widget.supplier != null
+                ? 'Supplier updated successfully'
+                : 'Supplier added successfully',
           ),
           backgroundColor: Colors.green,
         ),
@@ -418,7 +416,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 class SupplierDetailsScreen extends StatelessWidget {
   final Supplier supplier;
 
-  const SupplierDetailsScreen({Key? key, required this.supplier}) : super(key: key);
+  const SupplierDetailsScreen({Key? key, required this.supplier})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +441,8 @@ class SupplierDetailsScreen extends StatelessWidget {
                   Navigator.of(context).pop();
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => SupplierDetailsScreen(supplier: supplier),
+                      builder: (context) =>
+                          SupplierDetailsScreen(supplier: supplier),
                     ),
                   );
                 }
@@ -461,11 +461,7 @@ class SupplierDetailsScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: Theme.of(context).primaryColor,
-                  child: Icon(
-                    Icons.business,
-                    color: Colors.white,
-                    size: 30,
-                  ),
+                  child: Icon(Icons.business, color: Colors.white, size: 30),
                 ),
                 SizedBox(width: 16),
                 Column(
@@ -491,10 +487,7 @@ class SupplierDetailsScreen extends StatelessWidget {
             SizedBox(height: 32),
             Text(
               'Contact Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             _buildDetailItem('Contact Name', supplier.contactName),
@@ -504,10 +497,7 @@ class SupplierDetailsScreen extends StatelessWidget {
             SizedBox(height: 24),
             Text(
               'Address',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             _buildDetailItem('Street', supplier.address),
@@ -516,15 +506,18 @@ class SupplierDetailsScreen extends StatelessWidget {
             SizedBox(height: 24),
             Text(
               'Dates',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            _buildDetailItem('Created', supplier.dateCreated.toString().split('.')[0]),
-            if (supplier.dateUpdated != null) 
-              _buildDetailItem('Last Updated', supplier.dateUpdated!.toString().split('.')[0]),
+            _buildDetailItem(
+              'Created',
+              supplier.dateCreated.toString().split('.')[0],
+            ),
+            if (supplier.dateUpdated != null)
+              _buildDetailItem(
+                'Last Updated',
+                supplier.dateUpdated!.toString().split('.')[0],
+              ),
           ],
         ),
       ),
@@ -541,14 +534,10 @@ class SupplierDetailsScreen extends StatelessWidget {
             width: 100,
             child: Text(
               '$label: ',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

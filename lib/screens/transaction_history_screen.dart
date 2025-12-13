@@ -5,6 +5,7 @@ import '../services/audit_service.dart';
 import '../utils/error_handler.dart';
 import '../utils/filter_helper.dart';
 import '../widgets/empty_state_widget.dart';
+import '../l10n/app_localizations.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   @override
@@ -19,9 +20,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transaction History'),
+        title: Text(localizations!.transactionHistory),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -54,7 +56,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     onPressed: () {
                       setState(() {}); // Retry by rebuilding
                     },
-                    child: Text('Retry'),
+                    child: Text(localizations.retry),
                   ),
                 ],
               ),
@@ -118,9 +120,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   Expanded(
                                     child: Text(
                                       _selectedFilter == null
-                                          ? 'All Transactions'
+                                          ? localizations.allTransactions
                                           : _getTransactionTypeString(
                                               _selectedFilter!,
+                                              localizations,
                                             ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -132,19 +135,19 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                             itemBuilder: (context) => [
                               PopupMenuItem(
                                 value: null,
-                                child: Text('All Transactions'),
+                                child: Text(localizations.allTransactions),
                               ),
                               PopupMenuItem(
                                 value: TransactionType.addition,
-                                child: Text('Additions'),
+                                child: Text(localizations.additions),
                               ),
                               PopupMenuItem(
                                 value: TransactionType.deduction,
-                                child: Text('Deductions'),
+                                child: Text(localizations.deductions),
                               ),
                               PopupMenuItem(
                                 value: TransactionType.transfer,
-                                child: Text('Transfers'),
+                                child: Text(localizations.transfers),
                               ),
                             ],
                             onSelected: (TransactionType? type) {
@@ -162,7 +165,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                               _selectedFilter = null;
                             });
                           },
-                          child: Text('Clear'),
+                          child: Text(localizations.clear),
                         ),
                       ],
                     ),
@@ -248,14 +251,17 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
   }
 
-  String _getTransactionTypeString(TransactionType type) {
+  String _getTransactionTypeString(
+    TransactionType type,
+    AppLocalizations localizations,
+  ) {
     switch (type) {
       case TransactionType.addition:
-        return 'Additions';
+        return localizations.additions;
       case TransactionType.deduction:
-        return 'Deductions';
+        return localizations.deductions;
       case TransactionType.transfer:
-        return 'Transfers';
+        return localizations.transfers;
     }
   }
 }

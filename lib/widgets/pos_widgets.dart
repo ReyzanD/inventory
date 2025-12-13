@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
 import '../models/pos_transaction.dart';
 import '../widgets/currency_widgets.dart';
+import '../l10n/app_localizations.dart';
 
 class POSProductGrid extends StatelessWidget {
   @override
@@ -132,11 +133,14 @@ class _POSCartState extends State<POSCart> {
                             widget.cart,
                           );
                           widget.onCartChanged([]);
+                          final localizations = AppLocalizations.of(context);
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
                               SnackBar(
-                                content: Text('Cart cleared'),
+                                content: Text(
+                                  localizations?.cartCleared ?? 'Cart cleared',
+                                ),
                                 action: SnackBarAction(
                                   label: 'UNDO',
                                   onPressed: () {
@@ -240,7 +244,15 @@ class _POSCartState extends State<POSCart> {
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
-                child: Text('Process Transaction'),
+                child: Builder(
+                  builder: (context) {
+                    final localizations = AppLocalizations.of(context);
+                    return Text(
+                      localizations?.processTransaction ??
+                          'Process Transaction',
+                    );
+                  },
+                ),
               ),
             ],
           ],
@@ -250,6 +262,7 @@ class _POSCartState extends State<POSCart> {
   }
 
   Widget _buildCartSummary() {
+    final localizations = AppLocalizations.of(context);
     final subtotal = widget.cart.fold(
       0.0,
       (sum, item) => sum + item.totalItemPrice,
@@ -260,7 +273,10 @@ class _POSCartState extends State<POSCart> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Subtotal:', style: TextStyle(fontSize: 16)),
+          Text(
+            localizations?.subtotal ?? 'Subtotal:',
+            style: TextStyle(fontSize: 16),
+          ),
           RupiahText(
             amount: subtotal,
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

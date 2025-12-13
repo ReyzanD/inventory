@@ -3,6 +3,7 @@ import '../services/inventory_service.dart';
 import '../services/audit_service.dart';
 import '../services/logging_service.dart';
 import '../services/connectivity_service.dart';
+import '../services/settings_service.dart';
 import '../providers/inventory_provider.dart';
 
 // Service locator instance
@@ -17,6 +18,7 @@ void setupDependencies() {
   // Don't call initialize() here - it will be called in main.dart
   // This prevents double initialization and allows proper error handling
   locator.registerSingleton<ConnectivityService>(ConnectivityService());
+  locator.registerSingleton<SettingsService>(SettingsService());
 
   // Providers
   locator.registerFactory<InventoryProvider>(() => InventoryProvider());

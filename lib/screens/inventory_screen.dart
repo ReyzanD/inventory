@@ -13,6 +13,7 @@ import '../utils/filter_helper.dart';
 import '../utils/sort_helper.dart';
 import '../utils/list_extensions.dart';
 import '../widgets/empty_state_widget.dart';
+import '../l10n/app_localizations.dart';
 
 class InventoryScreen extends StatefulWidget {
   @override
@@ -38,9 +39,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Inventory'),
+        title: Text(localizations!.inventory),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -59,7 +61,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
         builder: (context, provider, child) {
           // Show loading indicator when loading
           if (provider.isLoadingInventory) {
-            return LoadingIndicator(message: 'Loading inventory items...');
+            return LoadingIndicator(
+              message: localizations.loadingInventoryItems,
+            );
           }
 
           // Error banner if load failed
@@ -86,7 +90,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         onPressed: () {
                           context.inventoryProvider.loadInventoryItems();
                         },
-                        child: Text('Retry'),
+                        child: Text(localizations.retry),
                       ),
                     ],
                   ),
@@ -94,7 +98,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 Expanded(
                   child: Center(
                     child: Text(
-                      'Unable to load inventory.',
+                      localizations.unableToLoadInventory,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
@@ -109,8 +113,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
           if (provider.inventoryItems.isEmpty) {
             return EmptyStateWidget(
               icon: Icons.inventory_2_outlined,
-              title: 'No inventory items found',
-              subtitle: 'Tap the + button to add your first item',
+              title: localizations.noItemsFound,
+              subtitle: localizations.tapToCreateFirstItem,
             );
           }
 
@@ -216,15 +220,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 context: context,
                                 builder: (BuildContext context) {
                                   return AlertDialog(
-                                    title: Text('Delete Item'),
+                                    title: Text(localizations.deleteItem),
                                     content: Text(
-                                      'Are you sure you want to delete ${item.name}?',
+                                      '${localizations.areYouSure} ${localizations.thisActionCannotBeUndone}\n\n${item.name}?',
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.of(context).pop(),
-                                        child: Text('Cancel'),
+                                        child: Text(localizations.cancel),
                                       ),
                                       TextButton(
                                         onPressed: () async {
@@ -239,7 +243,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                               ..hideCurrentSnackBar()
                                               ..showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Item deleted'),
+                                                  content: Text(
+                                                    localizations.itemDeleted,
+                                                  ),
                                                   action: SnackBarAction(
                                                     label: 'UNDO',
                                                     onPressed: () async {
@@ -286,7 +292,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                           }
                                         },
                                         child: Text(
-                                          'Delete',
+                                          localizations.delete,
                                           style: TextStyle(color: Colors.red),
                                         ),
                                       ),

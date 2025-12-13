@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class SearchAndFilterBar extends StatefulWidget {
   final TextEditingController? controller;
@@ -147,17 +148,23 @@ class _SearchAndFilterBarState extends State<SearchAndFilterBar> {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min, // Important: prevent taking infinite space
+                      mainAxisSize: MainAxisSize
+                          .min, // Important: prevent taking infinite space
                       children: [
                         Text(
                           'Stock: ${_minStock.toInt()} - ${_maxStock.toInt()}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
-                          mainAxisSize: MainAxisSize.min, // Prevent taking infinite space
+                          mainAxisSize:
+                              MainAxisSize.min, // Prevent taking infinite space
                           children: [
-                            Flexible(  // Use Flexible instead of Expanded to be more lenient with constraints
+                            Flexible(
+                              // Use Flexible instead of Expanded to be more lenient with constraints
                               child: Slider(
                                 value: _minStock,
                                 min: 0,
@@ -167,13 +174,17 @@ class _SearchAndFilterBarState extends State<SearchAndFilterBar> {
                                     _minStock = value;
                                   });
                                   if (widget.onStockRangeChanged != null) {
-                                    widget.onStockRangeChanged!(_minStock, _maxStock);
+                                    widget.onStockRangeChanged!(
+                                      _minStock,
+                                      _maxStock,
+                                    );
                                   }
                                 },
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Flexible(  // Use Flexible instead of Expanded
+                            Flexible(
+                              // Use Flexible instead of Expanded
                               child: Slider(
                                 value: _maxStock,
                                 min: 0,
@@ -183,7 +194,10 @@ class _SearchAndFilterBarState extends State<SearchAndFilterBar> {
                                     _maxStock = value;
                                   });
                                   if (widget.onStockRangeChanged != null) {
-                                    widget.onStockRangeChanged!(_minStock, _maxStock);
+                                    widget.onStockRangeChanged!(
+                                      _minStock,
+                                      _maxStock,
+                                    );
                                   }
                                 },
                               ),
@@ -193,9 +207,19 @@ class _SearchAndFilterBarState extends State<SearchAndFilterBar> {
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.center,
-                          child: ElevatedButton(
-                            onPressed: _selectDateRange,
-                            child: const Text('Select Date Range'),
+                          child: Builder(
+                            builder: (context) {
+                              final localizations = AppLocalizations.of(
+                                context,
+                              );
+                              return ElevatedButton(
+                                onPressed: _selectDateRange,
+                                child: Text(
+                                  localizations?.selectDateRange ??
+                                      'Select Date Range',
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -221,7 +245,15 @@ class _SearchAndFilterBarState extends State<SearchAndFilterBar> {
         border: OutlineInputBorder(),
       ),
       items: [
-        const DropdownMenuItem(value: '', child: Text('All Categories')),
+        DropdownMenuItem(
+          value: '',
+          child: Builder(
+            builder: (context) {
+              final localizations = AppLocalizations.of(context);
+              return Text(localizations?.allCategories ?? 'All Categories');
+            },
+          ),
+        ),
         for (String category in widget.categories!)
           DropdownMenuItem(value: category, child: Text(category)),
       ],

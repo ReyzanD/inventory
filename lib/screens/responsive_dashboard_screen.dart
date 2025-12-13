@@ -6,13 +6,16 @@ import 'dashboard_screen.dart';
 import 'notification_screen.dart';
 import 'barcode_scanner_screen.dart';
 import 'transaction_history_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/side_menu_bar.dart';
 import '../widgets/breadcrumb.dart';
+import '../l10n/app_localizations.dart';
 
 class ResponsiveDashboardScreen extends StatefulWidget {
   @override
-  _ResponsiveDashboardScreenState createState() => _ResponsiveDashboardScreenState();
+  _ResponsiveDashboardScreenState createState() =>
+      _ResponsiveDashboardScreenState();
 }
 
 class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
@@ -27,35 +30,50 @@ class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
     BarcodeScannerScreen(),
     TransactionHistoryScreen(),
     NotificationScreen(),
+    SettingsScreen(),
   ];
 
-  final List<String> _screenTitles = [
-    'Dashboard',
-    'Inventory',
-    'Products',
-    'POS',
-    'Scan Item',
-    'Transaction History',
-    'Notifications',
-  ];
+  List<String> _getScreenTitles(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    return [
+      localizations!.dashboard,
+      localizations.inventory,
+      localizations.products,
+      localizations.pos,
+      localizations.scanItem,
+      localizations.transactionHistory,
+      localizations.notifications,
+      localizations.settings,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenTitles = _getScreenTitles(context);
     return Scaffold(
       body: ResponsiveLayout(
-        mobile: _buildMobileLayout(),
-        tablet: _buildTabletLayout(),
-        desktop: _buildDesktopLayout(),
+        mobile: _buildMobileLayout(screenTitles),
+        tablet: _buildTabletLayout(screenTitles),
+        desktop: _buildDesktopLayout(screenTitles),
       ),
     );
   }
 
-  Widget _buildMobileLayout() {
+  Widget _buildMobileLayout(List<String> screenTitles) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_screenTitles[_selectedIndex]),
+        title: Text(screenTitles[_selectedIndex]),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        actions: [
+          if (_selectedIndex == 7)
+            IconButton(
+              icon: Icon(Icons.save),
+              onPressed: () {
+                // Settings screen will handle its own save
+              },
+            ),
+        ],
       ),
       drawer: Drawer(
         child: SideMenuBar(
@@ -73,7 +91,8 @@ class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
     );
   }
 
-  Widget _buildTabletLayout() {
+  Widget _buildTabletLayout(List<String> screenTitles) {
+    final localizations = AppLocalizations.of(context);
     return Row(
       children: [
         SideMenuBar(
@@ -89,13 +108,11 @@ class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
             children: [
               Breadcrumb(
                 items: [
-                  BreadcrumbItem(title: 'Home'),
-                  BreadcrumbItem(title: _screenTitles[_selectedIndex]),
+                  BreadcrumbItem(title: localizations!.home),
+                  BreadcrumbItem(title: screenTitles[_selectedIndex]),
                 ],
               ),
-              Expanded(
-                child: _screens[_selectedIndex],
-              ),
+              Expanded(child: _screens[_selectedIndex]),
             ],
           ),
         ),
@@ -103,7 +120,8 @@ class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
     );
   }
 
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(List<String> screenTitles) {
+    final localizations = AppLocalizations.of(context);
     return Row(
       children: [
         SideMenuBar(
@@ -120,13 +138,11 @@ class _ResponsiveDashboardScreenState extends State<ResponsiveDashboardScreen> {
             children: [
               Breadcrumb(
                 items: [
-                  BreadcrumbItem(title: 'Home'),
-                  BreadcrumbItem(title: _screenTitles[_selectedIndex]),
+                  BreadcrumbItem(title: localizations!.home),
+                  BreadcrumbItem(title: screenTitles[_selectedIndex]),
                 ],
               ),
-              Expanded(
-                child: _screens[_selectedIndex],
-              ),
+              Expanded(child: _screens[_selectedIndex]),
             ],
           ),
         ),

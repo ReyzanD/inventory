@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/currency_widgets.dart';
+import '../l10n/app_localizations.dart';
 
 class ProductCard extends StatelessWidget {
   final String name;
@@ -31,6 +32,7 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final profitPercentage = cogs > 0 ? (profit / cogs) * 100 : 0;
 
     return Card(
@@ -62,7 +64,7 @@ class ProductCard extends StatelessWidget {
           ],
         ),
         subtitle: Text(
-          'COGS: ${cogs > 0 ? '${cogs.toStringAsFixed(2)}' : 'N/A'} | ${cogs > 0 ? '${profitPercentage.toStringAsFixed(1)}%' : 'N/A'} profit | $componentsCount components',
+          '${localizations?.cogs ?? 'COGS:'} ${cogs > 0 ? '${cogs.toStringAsFixed(2)}' : 'N/A'} | ${cogs > 0 ? '${profitPercentage.toStringAsFixed(1)}%' : 'N/A'} ${localizations?.profit ?? 'profit'} | $componentsCount ${localizations?.components ?? 'components'}',
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
         children: [
@@ -72,7 +74,7 @@ class ProductCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Components ($componentsCount):',
+                  '${localizations?.componentsCount ?? 'Components'} ($componentsCount):',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 SizedBox(height: 8),
@@ -97,7 +99,7 @@ class ProductCard extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: onEdit,
                         icon: Icon(Icons.edit, size: 16),
-                        label: Text('Edit'),
+                        label: Text(localizations?.edit ?? 'Edit'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.amber,
                           foregroundColor: Colors.black,
@@ -109,7 +111,7 @@ class ProductCard extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: onDelete,
                         icon: Icon(Icons.delete, size: 16),
-                        label: Text('Delete'),
+                        label: Text(localizations?.delete ?? 'Delete'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,

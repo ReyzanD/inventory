@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class LoadingIndicator extends StatelessWidget {
   final String message;
@@ -72,7 +73,12 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
                   _error = null;
                 });
               },
-              child: Text('Try Again'),
+              child: Builder(
+                builder: (context) {
+                  final localizations = AppLocalizations.of(context);
+                  return Text(localizations?.tryAgain ?? 'Try Again');
+                },
+              ),
             ),
           ],
         ),

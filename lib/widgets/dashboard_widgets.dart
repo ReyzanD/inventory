@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
 import '../models/product.dart';
 import '../widgets/currency_widgets.dart';
+import '../l10n/app_localizations.dart';
 
-class DashboardStatCard extends StatelessWidget {
+class DashboardStatCard extends StatefulWidget {
   final String title;
   final dynamic value;
   final IconData icon;
@@ -20,49 +21,140 @@ class DashboardStatCard extends StatelessWidget {
   });
 
   @override
+  State<DashboardStatCard> createState() => _DashboardStatCardState();
+}
+
+class _DashboardStatCardState extends State<DashboardStatCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.02,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final gradientColors = [
+      widget.color.withOpacity(0.1),
+      widget.color.withOpacity(0.05),
+    ];
+
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() => _isHovered = true);
+        _controller.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovered = false);
+        _controller.reverse();
+      },
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark
+                  ? [
+                      widget.color.withOpacity(0.15),
+                      widget.color.withOpacity(0.05),
+                    ]
+                  : gradientColors,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: widget.color.withOpacity(0.2), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withOpacity(_isHovered ? 0.3 : 0.1),
+                blurRadius: _isHovered ? 12 : 8,
+                offset: Offset(0, _isHovered ? 6 : 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: color),
-                SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: widget.color.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(widget.icon, color: widget.color, size: 20),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                SizedBox(height: 16),
+                if (widget.value is double || widget.value is int)
+                  widget.isCurrency
+                      ? RupiahText(
+                          amount: widget.value.toDouble(),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: widget.color,
+                            letterSpacing: -0.5,
+                          ),
+                        )
+                      : Text(
+                          widget.value.toString(),
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: widget.color,
+                            letterSpacing: -0.5,
+                          ),
+                        )
+                else
+                  Text(
+                    widget.value.toString(),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: widget.color,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
               ],
             ),
-            SizedBox(height: 8),
-            if (value is double || value is int)
-              isCurrency
-                  ? RupiahText(
-                      amount: value.toDouble(),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-                  : Text(
-                      value.toString(),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    )
-            else
-              Text(
-                value.toString(),
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -85,30 +177,31 @@ class DashboardStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final isNarrow = MediaQuery.of(context).size.width < 720;
 
     final cards = [
       DashboardStatCard(
-        title: 'Inventory Items',
+        title: localizations?.inventoryItems ?? 'Inventory Items',
         value: inventoryItems,
         icon: Icons.inventory,
         color: Colors.blue,
       ),
       DashboardStatCard(
-        title: 'Products',
+        title: localizations?.products ?? 'Products',
         value: products,
         icon: Icons.production_quantity_limits,
         color: Colors.green,
       ),
       DashboardStatCard(
-        title: 'Total Value',
+        title: localizations?.totalValue ?? 'Total Value',
         value: totalValue,
         icon: Icons.attach_money,
         color: Colors.purple,
         isCurrency: true,
       ),
       DashboardStatCard(
-        title: 'Low Stock',
+        title: localizations?.lowStock ?? 'Low Stock',
         value: lowStockItems,
         icon: Icons.warning,
         color: Colors.orange,
@@ -143,22 +236,63 @@ class DashboardStatsRow extends StatelessWidget {
 class DashboardCard extends StatelessWidget {
   final String title;
   final Widget child;
+  final Color? accentColor;
 
-  const DashboardCard({super.key, required this.title, required this.child});
+  const DashboardCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = accentColor ?? Theme.of(context).primaryColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 16),
             child,
           ],
         ),

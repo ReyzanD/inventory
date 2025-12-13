@@ -57,7 +57,7 @@ dependencies:
   path: ^1.8.0
 
   # For date/time formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # For generating unique IDs
   uuid: ^4.5.1
@@ -79,6 +79,13 @@ dependencies:
 
   # For reactive programming and debounced search
   rxdart: ^0.27.7
+
+  # For local storage (settings)
+  shared_preferences: ^2.2.2
+
+  # For localization
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

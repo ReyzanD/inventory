@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 import '../widgets/notification_item.dart';
 import '../providers/inventory_provider.dart';
 import '../services/logging_service.dart';
+import '../l10n/app_localizations.dart';
 
 class NotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notifications'),
+        title: Text(localizations!.notifications),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/inventory_provider.dart';
 import '../models/product.dart';
@@ -115,7 +116,14 @@ class _ProductComponentsWidgetState extends State<ProductComponentsWidget> {
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text('Add Component'),
+                    child: Builder(
+                      builder: (context) {
+                        final localizations = AppLocalizations.of(context);
+                        return Text(
+                          localizations?.addComponent ?? 'Add Component',
+                        );
+                      },
+                    ),
                   ),
                 ] else ...[
                   Text(
@@ -168,9 +176,13 @@ class _ProductComponentsWidgetState extends State<ProductComponentsWidget> {
       _quantityNeeded = 1.0;
       _unit = 'g';
     } else {
+      final localizations = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select an inventory item'),
+          content: Text(
+            localizations?.pleaseSelectInventoryItem ??
+                'Please select an inventory item',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -249,8 +261,9 @@ class ProductComponentsList extends StatelessWidget {
       builder: (BuildContext context) {
         double newQuantity = component.quantityNeeded;
         String newUnit = component.unit;
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Edit Component'),
+          title: Text(localizations?.editComponent ?? 'Edit Component'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -286,7 +299,7 @@ class ProductComponentsList extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -300,7 +313,7 @@ class ProductComponentsList extends StatelessWidget {
                 );
                 Navigator.of(context).pop();
               },
-              child: Text('Save'),
+              child: Text(localizations?.save ?? 'Save'),
             ),
           ],
         );

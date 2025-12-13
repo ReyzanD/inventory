@@ -4,6 +4,7 @@ import '../providers/inventory_provider.dart';
 import '../models/pos_transaction.dart';
 import '../models/product.dart';
 import '../widgets/pos_widgets.dart';
+import '../l10n/app_localizations.dart';
 
 class POSScreen extends StatefulWidget {
   @override
@@ -68,10 +69,11 @@ class _POSScreenState extends State<POSScreen> {
     });
 
     // Show success message
+    final localizations = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Transaction completed! Total: \$${transaction.total.toStringAsFixed(2)}',
+          '${localizations?.transactionCompleted ?? 'Transaction completed! Total:'} \$${transaction.total.toStringAsFixed(2)}',
         ),
         backgroundColor: Colors.green,
       ),
@@ -80,9 +82,10 @@ class _POSScreenState extends State<POSScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('POS System'),
+        title: Text(localizations!.posSystem),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),

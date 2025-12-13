@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class SideMenuBar extends StatelessWidget {
   final int currentIndex;
@@ -14,6 +15,7 @@ class SideMenuBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final collapsed = isCollapsed || screenWidth < 720;
 
@@ -62,7 +64,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.dashboard,
-                  title: 'Dashboard',
+                  title: localizations!.dashboard,
                   index: 0,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -71,7 +73,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.inventory,
-                  title: 'Inventory',
+                  title: localizations.inventory,
                   index: 1,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -80,7 +82,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.production_quantity_limits,
-                  title: 'Products',
+                  title: localizations.products,
                   index: 2,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -89,7 +91,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.point_of_sale,
-                  title: 'POS',
+                  title: localizations.pos,
                   index: 3,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -98,7 +100,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.qr_code_scanner,
-                  title: 'Scan Item',
+                  title: localizations.scanItem,
                   index: 4,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -107,7 +109,7 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.history,
-                  title: 'Transaction History',
+                  title: localizations.transactionHistory,
                   index: 5,
                   currentIndex: currentIndex,
                   onTap: onTap,
@@ -116,8 +118,17 @@ class SideMenuBar extends StatelessWidget {
                 _buildSideMenuTile(
                   context: context,
                   icon: Icons.notifications,
-                  title: 'Notifications',
+                  title: localizations.notifications,
                   index: 6,
+                  currentIndex: currentIndex,
+                  onTap: onTap,
+                  isCollapsed: collapsed,
+                ),
+                _buildSideMenuTile(
+                  context: context,
+                  icon: Icons.settings,
+                  title: localizations.settings,
+                  index: 7,
                   currentIndex: currentIndex,
                   onTap: onTap,
                   isCollapsed: collapsed,
@@ -140,38 +151,79 @@ class SideMenuBar extends StatelessWidget {
     required bool isCollapsed,
   }) {
     final bool isSelected = index == currentIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isSelected
-            ? Theme.of(context).primaryColor.withOpacity(0.1)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        gradient: isSelected
+            ? LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Theme.of(context).primaryColor.withOpacity(0.2),
+                  Theme.of(context).primaryColor.withOpacity(0.1),
+                ],
+              )
+            : null,
+        color: isSelected ? null : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected
+            ? Border.all(
+                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                width: 1,
+              )
+            : null,
       ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).textTheme.bodyMedium?.color,
-        ),
-        title: isCollapsed
-            ? null
-            : Text(
-                title,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : Theme.of(context).textTheme.bodyMedium?.color,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(index),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor.withOpacity(0.2)
+                        : (isDark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.grey.withOpacity(0.1)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).textTheme.bodyMedium?.color,
+                    size: 20,
+                  ),
                 ),
-              ),
-        onTap: () => onTap(index),
-        selected: isSelected,
-        selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
-        horizontalTitleGap: 12,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                if (!isCollapsed) ...[
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        fontSize: 14,
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Theme.of(context).textTheme.bodyMedium?.color,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

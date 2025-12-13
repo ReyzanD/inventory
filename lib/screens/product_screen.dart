@@ -12,6 +12,7 @@ import '../utils/filter_helper.dart';
 import '../utils/sort_helper.dart';
 import '../utils/list_extensions.dart';
 import '../widgets/empty_state_widget.dart';
+import '../l10n/app_localizations.dart';
 
 class ProductScreen extends StatefulWidget {
   @override
@@ -25,9 +26,10 @@ class _ProductScreenState extends State<ProductScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Products'),
+        title: Text(localizations!.products),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -46,7 +48,7 @@ class _ProductScreenState extends State<ProductScreen> {
         builder: (context, provider, child) {
           // Show loading indicator when loading
           if (provider.isLoadingProducts) {
-            return LoadingIndicator(message: 'Loading products...');
+            return LoadingIndicator(message: localizations.loadingProducts);
           }
 
           // Error banner if load failed
@@ -73,7 +75,7 @@ class _ProductScreenState extends State<ProductScreen> {
                         onPressed: () {
                           context.inventoryProvider.loadProducts();
                         },
-                        child: Text('Retry'),
+                        child: Text(localizations.retry),
                       ),
                     ],
                   ),
@@ -81,7 +83,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 Expanded(
                   child: Center(
                     child: Text(
-                      'Unable to load products.',
+                      localizations.unableToLoadProducts,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),
@@ -96,8 +98,8 @@ class _ProductScreenState extends State<ProductScreen> {
           if (provider.products.isEmpty) {
             return EmptyStateWidget(
               icon: Icons.production_quantity_limits,
-              title: 'No products found',
-              subtitle: 'Tap the + button to create your first product',
+              title: localizations.noProductsFound,
+              subtitle: localizations.tapToCreateFirstProduct,
             );
           }
 
@@ -218,15 +220,15 @@ class _ProductScreenState extends State<ProductScreen> {
                                 context: context,
                                 builder: (BuildContext context) {
                                   return AlertDialog(
-                                    title: Text('Delete Product'),
+                                    title: Text(localizations.deleteProduct),
                                     content: Text(
-                                      'Are you sure you want to delete ${product.name}?',
+                                      '${localizations.areYouSure} ${localizations.thisActionCannotBeUndone}\n\n${product.name}?',
                                     ),
                                     actions: [
                                       TextButton(
                                         onPressed: () =>
                                             Navigator.of(context).pop(),
-                                        child: Text('Cancel'),
+                                        child: Text(localizations.cancel),
                                       ),
                                       TextButton(
                                         onPressed: () async {
@@ -242,7 +244,7 @@ class _ProductScreenState extends State<ProductScreen> {
                                               ..showSnackBar(
                                                 SnackBar(
                                                   content: Text(
-                                                    'Product deleted',
+                                                    '${localizations.products} ${localizations.delete.toLowerCase()}',
                                                   ),
                                                   action: SnackBarAction(
                                                     label: 'UNDO',
@@ -289,7 +291,7 @@ class _ProductScreenState extends State<ProductScreen> {
                                           }
                                         },
                                         child: Text(
-                                          'Delete',
+                                          localizations.delete,
                                           style: TextStyle(color: Colors.red),
                                         ),
                                       ),
